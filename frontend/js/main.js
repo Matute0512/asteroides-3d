@@ -41,7 +41,7 @@ async function loadAsteroidsForDate(dateStr) {
 }
 
 // --- EVENTOS DEL USUARIO ---
-searchBtn.addEventListener('click', () => {
+searchBtn.addEventListener('click', (event) => {
     // Bloqueamos cualquier recarga automática de la página
     event.preventDefault();
     if (datePicker.value){

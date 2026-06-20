@@ -73,7 +73,7 @@ input[type=range] { width: 100%; cursor: pointer; accent-color: #38bdf8; }
 }
 
 @keyframes spin {
-    to { transform: rotate(360s);}
+    to { transform: rotate(360deg);}
 }
 
 /* --- Panel de Búsqueda --- */

@@ -1,7 +1,10 @@
 class ApiClient{
     constructor(){
-        // URL del Backend centralizada
-        this.baseUrl = 'http://127.0.0.1:8000/api';
+        // Detección automática: si estamos en localhost usamos el puerto 8000,
+        // de lo contrario usamos la URL real de producción (relativa al dominio)
+        this.baseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://127.0.0.1:8000/api'
+            : `${window.location.origin}/api`;
     }
 
     /**
