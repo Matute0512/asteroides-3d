@@ -1,9 +1,120 @@
-body{
-    margin: 0;
-    overflow: hidden;
-    background-color: #000;
+body { margin: 0; overflow: hidden; background-color: #000; }
+#scene-container { width: 100vw; height: 100vh; display: block; }
+
+/* Estilo Base Glassmorphism */
+.glass-panel {
+    position: absolute;
+    background: rgba(15, 20, 35, 0.75);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    padding: 24px;
+    color: #e2e8f0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    z-index: 10;
 }
-#scene-container{
-    width: 100vw;
-    height: 100vh;
+
+/* Panel Lateral (Info) */
+#info-panel {
+    top: 20px; right: 20px; width: 280px;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+#info-panel.hidden {
+    opacity: 0; transform: translateX(30px); pointer-events: none;
+}
+#info-panel h2 { margin: 0 0 16px 0; font-size: 1.3rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 12px; }
+.data-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 0.95rem; }
+.data-row .label { color: #94a3b8; }
+.data-row .value { font-weight: bold; color: #60a5fa; }
+.data-row .unit { color: #64748b; font-size: 0.85rem; margin-left: 4px; }
+#close-panel { position: absolute; top: 16px; right: 16px; background: transparent; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer; }
+#close-panel:hover { color: #ef4444; }
+
+/* Panel Inferior (Controles) */
+#controls-panel {
+    bottom: 20px; left: 50%; transform: translateX(-50%);
+    width: 600px; display: flex; gap: 40px; justify-content: space-between;
+    padding: 16px 24px;
+}
+.control-group { flex: 1; display: flex; flex-direction: column; }
+.control-group label { margin-bottom: 8px; font-size: 0.9rem; font-weight: bold; color: #cbd5e1; }
+.control-group span { color: #38bdf8; }
+input[type=range] { width: 100%; cursor: pointer; accent-color: #38bdf8; }
+
+/* --- Pantalla de Carga (Loading Overlay) ---*/
+#loading-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter:  blur(5px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 50;
+    transition: opacity 0.3s ease;
+}
+
+#loading-overlay.hidden {
+    opacity: 0;
+    pointer-events: none; /* Permite hacer clics debajo cuando está oculto */
+}
+
+.spinner{
+    width: 50px; height: 50px;
+    border: 4px solid rgba(255, 255, 255, 0.1);
+    border-top-color: #38bdf8;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 16px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360s);}
+}
+
+/* --- Panel de Búsqueda --- */
+#search-panel{
+    top: 20px;
+    left: 20px;
+    width: 250px;
+}
+
+#search-panel label {
+    font-weight: bold;
+    color: #cbd5e1;
+}
+
+.search-controls{
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+#date-picker {
+    flex: 1;
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(0, 0, 0, 0.3);
+    color: #fff;
+    color-scheme: dark; /* Fuerza el icono del calendario en blanco*/
+}
+
+#search-btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: none;
+    background: #38bdf8;
+    color: #0f172a;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+#search-btn:hover{
+    background: #0ea5e9;
 }

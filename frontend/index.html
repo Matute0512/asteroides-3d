@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Asteroides 3D - NASA NeoWs</title>
     <link rel="stylesheet" href="./css/styles.css">
-
     <script type="importmap">
         {
             "imports": {
@@ -13,10 +12,53 @@
                 "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
             }
         }
-</script>
+    </script>
 </head>
 <body>
     <div id="scene-container"></div>
+    <div id="loading-overlay" class="hidden">
+        <div class="spinner"></div>
+        <p>Buscando en el espacio profundo...</p>
+    </div>
+
+    <div id="search-panel" class="glass-panel">
+        <label for="date-picker">Fecha Estelar:</label>
+        <div class="search-controls">
+            <input type="date" id="date-picker">
+            <button id="search-btn">Explorar</button>
+        </div>
+    </div>
+    <div id="info-panel" class="glass-panel hidden">
+        <button id="close-panel">✕</button>
+        <h2 id="ast-name">Nombre</h2>
+        <div class="data-row">
+            <span class="label">Diámetro Máx:</span>
+            <span id="ast-diameter" class="value">0</span> <span class="unit">km</span>
+        </div>
+        <div class="data-row">
+            <span class="label">Velocidad:</span>
+            <span id="ast-velocity" class="value">0</span> <span class="unit">km/h</span>
+        </div>
+        <div class="data-row">
+            <span class="label">Distancia:</span>
+            <span id="ast-distance" class="value">0</span> <span class="unit">km</span>
+        </div>
+        <div class="data-row">
+            <span class="label">Peligro:</span>
+            <span id="ast-hazard" class="value">No</span>
+        </div>
+    </div>
+
+    <div id="controls-panel" class="glass-panel">
+        <div class="control-group">
+            <label for="size-slider">Escala de Tamaño: <span id="size-label">15x</span></label>
+            <input type="range" id="size-slider" min="1" max="100" step="1" value="15">
+        </div>
+        <div class="control-group">
+            <label for="distance-slider">Compresión de Distancia: <span id="dist-label">400k</span></label>
+            <input type="range" id="distance-slider" min="50000" max="800000" step="10000" value="400000">
+        </div>
+    </div>
 
     <script type="module" src="./js/main.js"></script>
 </body>
