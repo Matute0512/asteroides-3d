@@ -7,8 +7,8 @@ from slowapi.errors import RateLimitExceeded
 
 from backend.api.router import limiter
 from backend.core.logger import logger
+from backend.core.config import settings
 from backend.db.database import engine, Base
-from backend.db import models
 from backend.services.nasa_client import nasa_client
 from backend.api.router import router as asteroides_router
 
@@ -41,13 +41,11 @@ app.state.limiter = limiter
 app.add_exception_handler(
     RateLimitExceeded, _rate_limit_exceeded_handler)  # type:ignore
 # Leer orígenes desde el entorno, con fallback a localhost para desarrollo
-origins_str = os.getenv(
-    "ALLOWED_ORIGINS", "http://127.0.0.1:5500,http://localhost:5500")
-origins = [o.strip() for o in origins_str.split(",")]
+
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["GET"],
     allow_headers=["*"]
