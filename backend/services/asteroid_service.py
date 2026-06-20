@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from sqlalchemy import select
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from backend.db import models
 from backend.services.nasa_client import nasa_client
@@ -39,8 +40,9 @@ async def sync_asteroids_for_date(date: str, db: Session) -> int:
         return 0
 
     # 2. Consultar IDs existentes para evitar duplicados (Optimización de DB)
-    ids_existentes = {ast.id for ast in db.query(models.Asteroide.id).filter(models.Asteroide.close_approach_date == date).all()
-                      }
+    ids_existentes = select(models.Asteroide.id).where(
+        models.Asteroide.close_approach_date == date)
+    ids_existentes = set(db.scalars(ids_existentes).all())
     nuevos_asteroides = []
     # 3. Procesar y mapear cada asteroide
     for ast in asteroides_crudos:

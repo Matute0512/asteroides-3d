@@ -12,7 +12,14 @@ class NasaApiClient:
         self.api_key = settings.NASA_API_KEY
 
         # Instanciamos un único cliente asíncrono persistente con timeout global
-        self.client = httpx.AsyncClient(timeout=10.0)
+        self.client = httpx.AsyncClient(
+            timeout=httpx.Timeout(
+                connect=5.0,  # Máximo 5s para establecer conexión
+                read=30.0,   # NASA puede tardar hasta 30s en responder datos pesados
+                write=5.0,
+                pool=5.0,
+            ),
+        )
 
     async def fetch_asteroids(self, start_date: str, end_date: str) -> dict:
         """

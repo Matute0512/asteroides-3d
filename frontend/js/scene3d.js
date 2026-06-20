@@ -53,6 +53,10 @@ export class SpaceScene {
 
         window.addEventListener('resize', () => this.onWindowResize());
         this.animate();
+
+        // Referencias para evitar fugas de memoria
+        this.sharedGeometry = null;
+        this.sharedMaterial = null;
     }
 
     #createStarfield() {
@@ -97,23 +101,31 @@ export class SpaceScene {
         this.asteroids.forEach(mesh => {
             // Lo quitamos de la escena visual
             this.scene.remove(mesh);
-            // Destruimos la geometría y el material de la memoria de la tarjeta gráfica
-            mesh.geometry.dispose();
-            mesh.material.dispose();
         });
 
         // Vaciamos el array
         this.asteroids = [];
+
+        // Liberamos los recursos compartidos de una vez
+        if (this.sharedGeometry) {
+            this.sharedGeometry.dispose();
+            this.sharedGeometry = null;
+        }
+        if (this.sharedMaterial) {
+            this.sharedMaterial.dispose();
+            this.sharedMaterial = null;
+        }
+
         // Cerramos el panel de información si esta abierto
         document.getElementById('info-panel').classList.add('hidden');
     }
     createAsteroids(asteroidsData) {
         // OPTIMIZACIÓN: Compartimos una única geometría base y un material para todas las rocas
-        const baseGeometry = new THREE.DodecahedronGeometry(1, 1);
-        const baseMaterial = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.8, metalness: 0.2 });
+        this.sharedGeometry = new THREE.DodecahedronGeometry(1, 1);
+        this.sharedMaterial = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.8, metalness: 0.2 });
 
         asteroidsData.forEach(ast => {
-            const asteroidMesh = new THREE.Mesh(baseGeometry, baseMaterial);
+            const asteroidMesh = new THREE.Mesh(this.sharedGeometry, this.sharedMaterial);
 
             // Guardamos el JSON y calculamos órbitas aleatorias persistentes
             asteroidMesh.userData = {
