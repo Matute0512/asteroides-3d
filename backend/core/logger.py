@@ -18,7 +18,7 @@ def _setup_logger() -> logging.Logger:
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setFormatter(formatter)
 
-        # coplar el handler al logger
+        # acoplar el handler al logger
         logger.addHandler(console_handler)
 
         try:

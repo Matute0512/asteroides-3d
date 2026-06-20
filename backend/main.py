@@ -48,11 +48,11 @@ app.add_middleware(
 )
 
 
-# Conectamos el enrutador a la aplicación pricipal
+# Conectamos el enrutador a la aplicación principal
 app.include_router(asteroides_router)
 
 
-# Endopoint raíz de comprobación de salud (Health Check)
+# Endpoint raíz de comprobación de salud (Health Check)
 @app.get("/")
 def health_check():
     return {"estado": "ok", "mensaje": "API de Asteroides 3D operativa."}
