@@ -1,0 +1,42 @@
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
+
+from backend.core.logger import logger
+from backend.db.database import engine, Base
+from backend.db import models
+from backend.services.nasa_client import nasa_client
+from backend.api.router import router as asteroides_router
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # --- Lógica de Encendido (Startup) ---
+    try:
+        logger.info("Iniciando servidor FastAPI...")
+        Base.metadata.create_all(bind=engine)
+        logger.info("Tablas de la base de datos sincronizadas exitosamente.")
+        yield
+    except Exception as e:
+        logger.critical(f"Fallo crítico al inicializar la base de datos: {e}")
+        raise e
+    finally:
+        # --- Lógica de Apagado (Shutdown) ---
+        logger.info("Apagando el servidor y liberando recursos.")
+        await nasa_client.close()
+
+# Instanciamos la aplicación FastAPI inyectando nuestro lifespan
+app = FastAPI(
+    title="Asteroides 3D API",
+    description="API puente para procesar y servir datos de la NASA NeoWS",
+    version="1.0.0",
+    lifespan=lifespan
+)
+
+# Conectamos el enrutador a la aplicación pricipal
+app.include_router(asteroides_router)
+
+
+# Endopoint raíz de comprobación de salud (Health Check)
+@app.get("/")
+def health_check():
+    return {"estado": "ok", "mensaje": "API de Asteroides 3D operativa."}
