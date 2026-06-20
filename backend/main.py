@@ -2,7 +2,10 @@ import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
+from backend.api.router import limiter
 from backend.core.logger import logger
 from backend.db.database import engine, Base
 from backend.db import models
@@ -34,6 +37,9 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+app.state.limiter = limiter
+app.add_exception_handler(
+    RateLimitExceeded, _rate_limit_exceeded_handler)  # type:ignore
 # Leer orígenes desde el entorno, con fallback a localhost para desarrollo
 origins_str = os.getenv(
     "ALLOWED_ORIGINS", "http://127.0.0.1:5500,http://localhost:5500")

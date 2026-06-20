@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from backend.db import models
 from backend.services.nasa_client import nasa_client
 from backend.core.logger import logger
@@ -76,12 +77,31 @@ async def sync_asteroids_for_date(date: str, db: Session) -> int:
             logger.error(f"Error parseando el asteroide {ast_id}: {e}")
             continue
 
-    # 4. Inserción en la baase de datos
+    # 4. Inserción en la baase de datos on protección de conflictos (Race Condition)
     if nuevos_asteroides:
-        db.add_all(nuevos_asteroides)
+
+        # Converitmos los objetos ORM a diccionarios
+        valores = [
+            {
+                "id": ast.id,
+                "name": ast.name,
+                "close_approach_date": ast.close_approach_date,
+                "estimated_diameter_max_km": ast.estimated_diameter_max_km,
+                "is_potentially_hazardous": ast.is_potentially_hazardous,
+                "relative_velocity_km_h": ast.relative_velocity_km_h,
+                "miss_distance_km": ast.miss_distance_km
+            }
+            for ast in nuevos_asteroides
+        ]
+
+        # INSERT OR IGNORE de SQLite: Si el ID ya exisiste, lo ignora silenciosamente
+        stm = sqlite_insert(models.Asteroide).values(
+            valores).on_conflict_do_nothing(index_elements=["id"])
+        db.execute(stm)
         db.commit()
+
         logger.info(
-            f"Sincronización completa: {len(nuevos_asteroides)} asteroides nuevos insertados.")
+            f"Sincronización completa: {len(nuevos_asteroides)} asteroides procesados.")
     else:
         logger.info(
             "Sincronización completa: Todos los asteroides ya estaban en la base de datos.")

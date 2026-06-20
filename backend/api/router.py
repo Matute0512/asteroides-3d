@@ -1,5 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
+import httpx
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from backend.db.database import SessionLocal
 from backend.db import models
@@ -9,6 +12,9 @@ from backend.core.logger import logger
 from backend.services.asteroid_service import sync_asteroids_for_date
 
 router = APIRouter(prefix="/api/asteroids", tags=["Asteroides"])
+
+# Inicializamos el limitador de peticiones por IP
+limiter = Limiter(key_func=get_remote_address)
 
 
 def get_db():
@@ -20,44 +26,53 @@ def get_db():
 
 
 @router.get("/", response_model=list[schemas.AsteroideResponse])
+@limiter.limit("30/minute")  # Límite: 30 peticiones por minuto por usuario
 # <-- 2. Convertimos a async def
-async def get_asteroids_by_date(date: str, db: Session = Depends(get_db)):
+async def get_asteroids_by_date(
+    request: Request,  # Requerido por slowapi
+    date: str = Query(..., pattern=r"^\d{4}-\d{2}-\d{2}$",
+                      description="Fecha en formato YYYY-MM-DD"),
+    db: Session = Depends(get_db)
+):
     """
     Devuelve la lista de asteroides registrados para una fecha específica.
     Si la base de datos local está vacía, consulta la NASA NeoWs API.
     """
+    safe_date = date.replace("\n", "").replace("\r", "")[:10]
     logger.info(
-        f"Petición GET recibida: Buscando asteroides para la fecha {date}")
+        f"Petición GET recibida: Buscando asteroides para la fecha {safe_date}")
 
     try:
-        # Paso 1: Intentar obtener los datos de la caché local (SQLite)
         asteroides = db.query(models.Asteroide).filter(
-            models.Asteroide.close_approach_date == date).all()
+            models.Asteroide.close_approach_date == safe_date).all()
 
-        # Paso 2: Si no hay datos, llamar al servicio de la NASA
         if not asteroides:
             logger.info(
-                f"Datos no encontrados en SQLite para {date}. Iniciando descarga desde la NASA...")
-
-            # Sincronizamos (esto pausará la ejecución hasta que la NASA responda)
-            nuevos_insertados = await sync_asteroids_for_date(date, db)
-
-            if nuevos_insertados > 0:
-                # Volvemos a consultar SQLite para extraer los objetos con el formato ORM correcto
-                asteroides = db.query(models.Asteroide).filter(
-                    models.Asteroide.close_approach_date == date).all()
-            else:
-                logger.warning(
-                    f"La NASA no retornó asteroides válidos para {date}.")
-        else:
-            # Paso 3: Retornar los datos locales inmediatamente
-            logger.info(
-                f"Servido desde caché local: {len(asteroides)} asteroides encontrados para {date}.")
+                f"Datos no encontrados en SQLite para {safe_date}. Descargando...")
+            await sync_asteroids_for_date(safe_date, db)
+            asteroides = db.query(models.Asteroide).filter(
+                models.Asteroide.close_approach_date == safe_date).all()
 
         return asteroides
 
-    except Exception as e:
-        logger.error(
-            f"Fallo crítico al procesar la solicitud de asteroides: {e}")
+    # Manejo Granular de Errores de la NASA
+    except httpx.HTTPStatusError as e:
+        status = e.response.status_code
+        if status == 429:
+            raise HTTPException(
+                status_code=503, detail="Límite de la NASA API alcanzado. Intente más tarde.")
+        elif status == 403:
+            raise HTTPException(
+                status_code=503, detail="API key de NASA inválida o expirada.")
+        else:
+            logger.error(f"NASA API error HTTP {status}")
+            raise HTTPException(
+                status_code=502, detail="Error al comunicarse con la NASA API.")
+    except httpx.RequestError as e:
+        logger.error(f"Error de red conectando con NASA: {e}")
         raise HTTPException(
-            status_code=500, detail="Error interno del servidor al procesar los asteroides.")
+            status_code=504, detail="Timeout conectando con la NASA API.")
+    except Exception as e:
+        logger.error(f"Error interno inesperado: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500, detail="Error interno del servidor.")
