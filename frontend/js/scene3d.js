@@ -86,13 +86,26 @@ export class SpaceScene {
     }
 
     createEarth() {
-        const textureLoader = new THREE.TextureLoader();
-        const earthTexture = textureLoader.load('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg');
         const geometry = new THREE.SphereGeometry(10, 64, 64);
-        const material = new THREE.MeshStandardMaterial({ map: earthTexture, roughness: 0.6, metalness: 0.1 });
+        const material = new THREE.MeshStandardMaterial({ color: 0x2244aa, roughness: 0.6, metalness: 0.1 });
         this.earthMesh = new THREE.Mesh(geometry, material);
         this.scene.add(this.earthMesh);
+
+        const textureLoader = new THREE.TextureLoader();
+        textureLoader.load(
+            'https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-blue-marble.jpg',
+            (texture) => {
+                this.earthMesh.material.map = texture;
+                this.earthMesh.material.color.set(0xffffff);
+                this.earthMesh.material.needsUpdate = true;
+            },
+            undefined,
+            (error) => {
+                console.warn('[SpaceScene] Textura no disponible. Usando color sólido.', error);
+            }
+        );
     }
+
 
 
     // --- Limpieza de Memoria ---
@@ -132,9 +145,8 @@ export class SpaceScene {
                 data: ast,
                 theta: Math.random() * Math.PI * 2,
                 phi: Math.acos((Math.random() * 2) - 1),
-                rotX: Math.random(),
-                rotY: Math.random(),
-                rotZ: Math.random()
+                rotSpeedX: (Math.random() - 0.5) * 0.008,
+                rotSpeedY: (Math.random() - 0.5) * 0.008,
             };
 
             this.scene.add(asteroidMesh);
@@ -234,8 +246,8 @@ export class SpaceScene {
         if (this.earthMesh) this.earthMesh.rotation.y += 0.001;
 
         this.asteroids.forEach(mesh => {
-            mesh.rotation.x += 0.002;
-            mesh.rotation.y += 0.002;
+            mesh.rotation.x += mesh.userData.rotSpeedX;
+            mesh.rotation.y += mesh.userData.rotSpeedY;
         });
 
         this.controls.update();

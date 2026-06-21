@@ -14,30 +14,23 @@ const getTodayString = () => new Date().toISOString().split('T')[0];
 
 // --- LÓGICA DE NEGOCIO PRINCIPAL ---
 async function loadAsteroidsForDate(dateStr) {
+    searchBtn.disabled = true;
     try {
-        // Mostrar pantalla de carga (Bloque la UI para evitar doble click)
         loadingOverlay.classList.remove('hidden');
-
-        // Limpiar el universo viejo en WebGL
         app.clearAsteroids();
-
-        // Descargar los datos desde el backend (Patrón Cache-Aside)
         const asteroides = await apiClient.fetchAsteroidsByDate(dateStr);
-
-        // Procesar y dibujar si hay resultados
-        if (asteroides.length > 0){
+        if (asteroides.length > 0) {
             app.createAsteroids(asteroides);
         } else {
             console.warn(`[App] El espacio está despejado. No hay asteroides registrados para el ${dateStr}.`);
         }
-    } catch (error){
+    } catch (error) {
         console.error("[App] Fallo de conexión o renderizado:", error);
         alert("Fallo crítico al conectar con el centro de control (Backend).");
     } finally {
-        // Ocultar la pantalla de carga (Ya sea por éxito o fallo)
         loadingOverlay.classList.add('hidden');
+        searchBtn.disabled = false;
     }
-
 }
 
 // --- EVENTOS DEL USUARIO ---
@@ -52,11 +45,9 @@ searchBtn.addEventListener('click', (event) => {
 // --- BOOTSTRAP (Arranque Inicial) ---
 function bootApplication() {
     const today = getTodayString();
-    // Pre-llamamos al input del calendario con la fecha de hoy
-    datePicker.value = today;
-
-    // Disparamos la primera búsqueda automáticamente
-    loadAsteroidsForDate(today);
+    const selectedDate = datePicker.value || today;
+    datePicker.value = selectedDate;
+    loadAsteroidsForDate(selectedDate);
 }
 
 bootApplication();
