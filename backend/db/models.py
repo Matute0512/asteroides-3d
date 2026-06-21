@@ -4,6 +4,7 @@ from backend.db.database import Base
 
 class Asteroide(Base):
     __tablename__ = "asteroides"
+    __table_args__ = {"extend_existing": True}
 
     # Clave Primaria
     id = Column(String, primary_key=True, index=True)

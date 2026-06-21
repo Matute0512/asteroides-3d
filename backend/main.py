@@ -1,10 +1,9 @@
-import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-
+from sqlalchemy.exc import OperationalError
 from backend.api.router import limiter
 from backend.core.logger import logger
 from backend.core.config import settings
@@ -15,19 +14,20 @@ from backend.api.router import router as asteroides_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # --- Lógica de Encendido (Startup) ---
     try:
         logger.info("Iniciando servidor FastAPI...")
-        Base.metadata.create_all(bind=engine)
+        Base.metadata.create_all(bind=engine, checkfirst=True)
         logger.info("Tablas de la base de datos sincronizadas exitosamente.")
-        yield
-    except Exception as e:
-        logger.critical(f"Fallo crítico al inicializar la base de datos: {e}")
-        raise e
-    finally:
-        # --- Lógica de Apagado (Shutdown) ---
-        logger.info("Apagando el servidor y liberando recursos.")
-        await nasa_client.close()
+    except OperationalError as e:
+        if "already exists" in str(e):
+            logger.info("Tablas ya existentes, continuando...")
+        else:
+            logger.critical(
+                f"Fallo crítico al inicializar la base de datos: {e}")
+            raise e
+    yield
+    logger.info("Apagando el servidor y liberando recursos.")
+    await nasa_client.close()
 
 # Instanciamos la aplicación FastAPI inyectando nuestro lifespan
 app = FastAPI(
