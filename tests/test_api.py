@@ -1,6 +1,19 @@
 from fastapi.testclient import TestClient
 from unittest.mock import AsyncMock, patch
+import pytest
+
 from backend.main import app
+from backend.db.database import engine, Base
+
+# Crea las tablas antes de los tests y las elimina al terminar
+
+
+@pytest.fixture(autouse=True)
+def setup_database():
+    Base.metadata.create_all(bind=engine)
+    yield
+    Base.metadata.drop_all(bind=engine)
+
 
 client = TestClient(app)
 
