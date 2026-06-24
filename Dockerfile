@@ -1,6 +1,10 @@
 # Capa 1: imagen base — Python 3.12 versión mínima (slim = sin extras innecesarios)
 FROM python:3.12-slim
 
+# Instalar curl para el health check
+RUN apt-get update && apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/*
+
 # Capa 2: usuario no-root por seguridad
 # Por defecto Docker corre como root — si alguien hackea el contenedor, tiene acceso total
 # Con un usuario propio, el daño queda contenido

@@ -8,6 +8,7 @@ const app = new SpaceScene('scene-container');
 const datePicker = document.getElementById('date-picker');
 const searchBtn = document.getElementById('search-btn');
 const loadingOverlay = document.getElementById('loading-overlay');
+const loadingText = document.getElementById('loading-text');
 
 // Función de utilidad para obtener la fecha de hoy en formato YYYY-MM-DD
 const getTodayString = () => new Date().toISOString().split('T')[0];
@@ -16,6 +17,7 @@ const getTodayString = () => new Date().toISOString().split('T')[0];
 async function loadAsteroidsForDate(dateStr) {
     searchBtn.disabled = true;
     try {
+        loadingText.textContent = 'Buscando en el espacio profundo...';
         loadingOverlay.classList.remove('hidden');
         app.clearAsteroids();
         const asteroides = await apiClient.fetchAsteroidsByDate(dateStr);
@@ -47,6 +49,9 @@ function bootApplication() {
     const today = getTodayString();
     const selectedDate = datePicker.value || today;
     datePicker.value = selectedDate;
+    // El overlay ya está visible con "Inicializando motor 3D..."
+    // loadAsteroidsForDate lo cambia a "Buscando en el espacio profundo..."
+    // y lo oculta cuando termina
     loadAsteroidsForDate(selectedDate);
 }
 
