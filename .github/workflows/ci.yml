@@ -1,0 +1,38 @@
+name: CI — Asteroides 3D
+
+# Se ejecuta en cada push a main o develop, y en Pull Requests
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Descarga el código del repo
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      # 2. Instala Python 3.12
+      - name: Configurar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      # 3. Instala dependencias + herramientas de desarrollo
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt ruff pytest pytest-asyncio
+
+      # 4. Linter — detecta errores y malas prácticas
+      - name: Lint con Ruff
+        run: ruff check backend/
+
+      # 5. Tests
+      - name: Ejecutar tests
+        env:
+          NASA_API_KEY: ${{ secrets.NASA_API_KEY }}
+        run: pytest tests/ -v --tb=short
