@@ -5,7 +5,7 @@ class ApiClient{
 
     this.baseUrl = isLocal
         ? 'http://127.0.0.1:8000/api'
-        : `${window.location.origin}/api`;
+        : 'https://asteroides-3d-backend.onrender.com/api';
 }
 
     /**
