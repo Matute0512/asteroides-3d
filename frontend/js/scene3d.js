@@ -6,7 +6,6 @@ export class SpaceScene {
         // 1. Configuración Base
         this.container = document.getElementById(containerId);
 
-
         // 2. Escena
         this.scene = new THREE.Scene();
 
@@ -59,6 +58,10 @@ export class SpaceScene {
         this.sharedMaterial = null;
     }
 
+    /**
+     * Crea el campo de estrellas de fondo
+     * @private
+     */
     #createStarfield() {
         const STAR_COUNT = 3000;
         const UNIVERSE_RADIUS = 1500; // Ampliamos el universo para la cámara lejana
@@ -78,6 +81,9 @@ export class SpaceScene {
         this.scene.add(new THREE.Points(geometry, material));
     }
 
+    /**
+     * Configura la iluminación de la escena
+     */
     setupLights() {
         this.scene.add(new THREE.AmbientLight(0xffffff, 0.05));
         const sunLight = new THREE.DirectionalLight(0xffffff, 1.5);
@@ -85,6 +91,9 @@ export class SpaceScene {
         this.scene.add(sunLight);
     }
 
+    /**
+     * Crea el planeta Tierra en el centro de la escena
+     */
     createEarth() {
         const geometry = new THREE.SphereGeometry(10, 64, 64);
         const material = new THREE.MeshStandardMaterial({ color: 0x2244aa, roughness: 0.6, metalness: 0.1 });
@@ -106,9 +115,9 @@ export class SpaceScene {
         );
     }
 
-
-
-    // --- Limpieza de Memoria ---
+    /**
+     * Limpia todos los asteroides y libera memoria
+     */
     clearAsteroids() {
         // Recorremos los asteroides actuales
         this.asteroids.forEach(mesh => {
@@ -132,12 +141,17 @@ export class SpaceScene {
         // Cerramos el panel de información si esta abierto
         document.getElementById('info-panel').classList.add('hidden');
     }
+
+    /**
+     * Crea y posiciona los asteroides en la escena
+     * @param {Array} asteroidsData - Array de datos de asteroides desde la API
+     */
     createAsteroids(asteroidsData) {
         // OPTIMIZACIÓN: Compartimos una única geometría base y un material para todas las rocas
         this.sharedGeometry = new THREE.DodecahedronGeometry(1, 1);
         this.sharedMaterial = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.8, metalness: 0.2 });
 
-        asteroidsData.forEach(ast => {
+        asteroidsData.forEach((ast, index) => {
             const asteroidMesh = new THREE.Mesh(this.sharedGeometry, this.sharedMaterial);
 
             // Guardamos el JSON y calculamos órbitas aleatorias persistentes
@@ -147,6 +161,8 @@ export class SpaceScene {
                 phi: Math.acos((Math.random() * 2) - 1),
                 rotSpeedX: (Math.random() - 0.5) * 0.008,
                 rotSpeedY: (Math.random() - 0.5) * 0.008,
+                createdAt: Date.now() + (index * 10), // Stagger animation
+                opacity: 0
             };
 
             this.scene.add(asteroidMesh);
@@ -157,25 +173,35 @@ export class SpaceScene {
         this.updateAsteroidsTransform();
     }
 
-    // --- MAGIA MATEMÁTICA INTERACTIVA ---
-    updateAsteroidsTransform() {
+    /**
+     * Actualiza la posición y escala de todos los asteroides según los sliders
+     * @param {number} sizeMultiplier - Multiplicador de tamaño opcional
+     * @param {number} distanceDivisor - Divisor de distancia opcional
+     */
+    updateAsteroidsTransform(sizeMultiplier = null, distanceDivisor = null) {
+        const size = sizeMultiplier || this.sizeMultiplier;
+        const distance = distanceDivisor || this.distanceDivisor;
+
         this.asteroids.forEach(mesh => {
             const { data, theta, phi } = mesh.userData;
 
             // 1. Escalado dinámico usando mesh.scale
-            const visualSize = Math.max(0.3, data.estimated_diameter_max_km * this.sizeMultiplier);
+            const visualSize = Math.max(0.3, data.estimated_diameter_max_km * size);
             mesh.scale.set(visualSize, visualSize, visualSize);
 
             // 2. Reposicionamiento dinámico
-            const visualDistance = 12 + (data.miss_distance_km / this.distanceDivisor);
+            const visualDistance = 12 + (data.miss_distance_km / distance);
             mesh.position.x = visualDistance * Math.sin(phi) * Math.cos(theta);
             mesh.position.y = visualDistance * Math.cos(phi);
             mesh.position.z = visualDistance * Math.sin(phi) * Math.sin(theta);
         });
     }
 
-    // --- EVENTOS DEL SISTEMA Y UI ---
+    /**
+     * Configura los eventos de UI (sliders, botones)
+     */
     setupUIEvents() {
+        // Evento: Cerrar panel de información
         document.getElementById('close-panel').addEventListener('click', () => {
             document.getElementById('info-panel').classList.add('hidden');
         });
@@ -196,7 +222,10 @@ export class SpaceScene {
         });
     }
 
-    // --- RAYCASTER MATEMÁTICAMENTE CORREGIDO ---
+    /**
+     * Maneja el evento de clic en la escena (raycasting)
+     * @param {MouseEvent} event - Evento del ratón
+     */
     onMouseClick(event) {
         // Usamos getBoundingClientRect para evitar fallos si el canvas tiene márgenes
         const rect = this.renderer.domElement.getBoundingClientRect();
@@ -217,42 +246,70 @@ export class SpaceScene {
         }
     }
 
+    /**
+     * Actualiza el panel de información con datos del asteroide
+     * @param {Object} data - Datos del asteroide
+     */
     updateUIPanel(data) {
         const formatter = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 2 });
 
+        // Actualizar nombre
         document.getElementById('ast-name').textContent = data.name;
+
+        // Actualizar diámetro
         document.getElementById('ast-diameter').textContent = formatter.format(data.estimated_diameter_max_km);
+
+        // Actualizar velocidad
         document.getElementById('ast-velocity').textContent = formatter.format(data.relative_velocity_km_h);
+
+        // Actualizar distancia
         document.getElementById('ast-distance').textContent = formatter.format(data.miss_distance_km);
 
+        // Actualizar estado de peligro
         const hazardSpan = document.getElementById('ast-hazard');
+        const hazardIcon = document.getElementById('hazard-icon');
+        
         if (data.is_potentially_hazardous) {
-            hazardSpan.textContent = "SÍ ⚠️";
+            hazardSpan.textContent = "Potencialmente Peligroso";
+            hazardIcon.textContent = "⚠️";
             hazardSpan.style.color = "#ef4444";
         } else {
-            hazardSpan.textContent = "NO";
+            hazardSpan.textContent = "Seguro";
+            hazardIcon.textContent = "✓";
             hazardSpan.style.color = "#4ade80";
         }
 
+        // Mostrar el panel de información
         document.getElementById('info-panel').classList.remove('hidden');
     }
 
+    /**
+     * Maneja el redimensionamiento de la ventana
+     */
     onWindowResize() {
         this.camera.aspect = window.innerWidth / window.innerHeight;
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
+    /**
+     * Loop de animación principal (requestAnimationFrame)
+     */
     animate() {
         requestAnimationFrame(() => this.animate());
 
-        if (this.earthMesh) this.earthMesh.rotation.y += 0.001;
+        // Rotación de la Tierra
+        if (this.earthMesh) {
+            this.earthMesh.rotation.y += 0.001;
+        }
 
+        // Rotación de asteroides
         this.asteroids.forEach(mesh => {
             mesh.rotation.x += mesh.userData.rotSpeedX;
             mesh.rotation.y += mesh.userData.rotSpeedY;
         });
 
+        // Actualizar controles y renderizar
         this.controls.update();
         this.renderer.render(this.scene, this.camera);
     }
