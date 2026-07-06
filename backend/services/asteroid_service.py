@@ -31,9 +31,16 @@ async def sync_asteroids_for_date(date: str, db: Session) -> int:
     except Exception as e:
         logger.error(f"Fallo al obtener datos de la NASA para fecha {date}.")
         raise e
+    # backend/services/asteroid_service.py
+    MAX_ITEMS = 2000  # ajustable
 
-    # Extraemos la lista de asteroides para la fecha solicitada
     asteroides_crudos = data.get("near_earth_objects", {}).get(date, [])
+
+    if len(asteroides_crudos) > MAX_ITEMS:
+        logger.warning(
+            f"Truncando asteroides: {len(asteroides_crudos)} > {MAX_ITEMS}")
+        asteroides_crudos = asteroides_crudos[:MAX_ITEMS]
+
     if not asteroides_crudos:
         logger.warning(f"La NASA no devolvió asteroides para la fecha {date}.")
         return 0
@@ -98,9 +105,9 @@ async def sync_asteroids_for_date(date: str, db: Session) -> int:
         ]
 
         # INSERT OR IGNORE de SQLite: Si el ID ya exisiste, lo ignora silenciosamente
-        stm = sqlite_insert(models.Asteroide).values(
-            valores).on_conflict_do_nothing(index_elements=["id"])
-        db.execute(stm)
+        stmt = sqlite_insert(models.Asteroide.__table__).values(valores)
+        stmt = stmt.on_conflict_do_nothing(index_elements=["id"])
+        db.execute(stmt)
         db.commit()
 
         logger.info(

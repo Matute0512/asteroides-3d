@@ -1,10 +1,14 @@
 from sqlalchemy import Column, String, Float, Boolean
 from backend.db.database import Base
+from sqlalchemy import Index
 
 
 class Asteroide(Base):
     __tablename__ = "asteroides"
-    __table_args__ = {"extend_existing": True}
+    __table_args__ = (
+        Index("ix_asteroides_close_id", "close_approach_date", "id"),
+        {"extend_existing": True},
+    )
 
     # Clave Primaria
     id = Column(String, primary_key=True, index=True)

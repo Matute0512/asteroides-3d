@@ -210,6 +210,9 @@ export class SpaceScene {
         if (intersects.length > 0) {
             // intersects[0] es la roca impactada. Leemos data dentro de userData
             const astData = intersects[0].object.userData.data;
+            if (!astData || typeof astData !== 'object') return;
+            if (!('name' in astData)) return;
+
             this.updateUIPanel(astData);
         }
     }
