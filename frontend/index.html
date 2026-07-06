@@ -16,49 +16,118 @@
 </head>
 <body>
     <div id="scene-container"></div>
+    
+    <!-- Loading Overlay -->
     <div id="loading-overlay">
         <div class="spinner"></div>
         <p id="loading-text">Inicializando motor 3D</p>
     </div>
 
-    <div id="search-panel" class="glass-panel">
-        <label for="date-picker">Fecha Estelar:</label>
+    <!-- Search Panel Mejorado -->
+    <div id="search-panel" class="glass-panel search-enhanced">
+        <div class="search-header">
+            <h3>🔭 Explorador Estelar</h3>
+        </div>
+        <label for="date-picker" class="search-label">Selecciona una Fecha</label>
         <div class="search-controls">
-            <input type="date" id="date-picker">
-            <button id="search-btn">Explorar</button>
+            <input type="date" id="date-picker" class="date-input-enhanced">
+            <button id="search-btn" class="search-btn-enhanced">
+                <span>🔍 Explorar</span>
+            </button>
         </div>
-    </div>
-    <div id="info-panel" class="glass-panel hidden">
-        <button id="close-panel">✕</button>
-        <h2 id="ast-name">Nombre</h2>
-        <div class="data-row">
-            <span class="label">Diámetro Máx:</span>
-            <span id="ast-diameter" class="value">0</span> <span class="unit">km</span>
-        </div>
-        <div class="data-row">
-            <span class="label">Velocidad:</span>
-            <span id="ast-velocity" class="value">0</span> <span class="unit">km/h</span>
-        </div>
-        <div class="data-row">
-            <span class="label">Distancia:</span>
-            <span id="ast-distance" class="value">0</span> <span class="unit">km</span>
-        </div>
-        <div class="data-row">
-            <span class="label">Peligro:</span>
-            <span id="ast-hazard" class="value">No</span>
+        <div id="results-count" class="results-count hidden">
+            Asteroides encontrados: <span id="count-value">0</span>
         </div>
     </div>
 
-    <div id="controls-panel" class="glass-panel">
-        <div class="control-group">
-            <label for="size-slider">Escala de Tamaño: <span id="size-label">15x</span></label>
-            <input type="range" id="size-slider" min="1" max="100" step="1" value="15">
+    <!-- Info Panel Mejorado -->
+    <div id="info-panel" class="glass-panel info-enhanced hidden">
+        <div class="panel-header">
+            <h2 id="ast-name">Nombre del Asteroide</h2>
+            <button id="close-panel" class="close-btn">✕</button>
         </div>
-        <div class="control-group">
-            <label for="distance-slider">Compresión de Distancia: <span id="dist-label">400k</span></label>
-            <input type="range" id="distance-slider" min="50000" max="800000" step="10000" value="400000">
+        
+        <div class="asteroid-details">
+            <div class="detail-item">
+                <span class="icon">📏</span>
+                <div class="detail-content">
+                    <span class="label">Diámetro Máx</span>
+                    <div class="value-group">
+                        <span id="ast-diameter" class="value">0</span>
+                        <span class="unit">km</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="detail-item">
+                <span class="icon">⚡</span>
+                <div class="detail-content">
+                    <span class="label">Velocidad</span>
+                    <div class="value-group">
+                        <span id="ast-velocity" class="value">0</span>
+                        <span class="unit">km/h</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="detail-item">
+                <span class="icon">📍</span>
+                <div class="detail-content">
+                    <span class="label">Distancia</span>
+                    <div class="value-group">
+                        <span id="ast-distance" class="value">0</span>
+                        <span class="unit">km</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="detail-item hazard-indicator">
+                <span class="icon" id="hazard-icon">✓</span>
+                <div class="detail-content">
+                    <span class="label">Estado de Riesgo</span>
+                    <div class="value-group">
+                        <span id="ast-hazard" class="value">Seguro</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
+
+    <!-- Controls Panel Mejorado -->
+    <div id="controls-panel" class="glass-panel controls-enhanced">
+        <div class="control-group">
+            <div class="control-header">
+                <label for="size-slider">
+                    <span class="icon">📏</span>
+                    Escala de Tamaño
+                </label>
+                <span id="size-label" class="control-value">15x</span>
+            </div>
+            <input type="range" id="size-slider" min="1" max="100" step="1" value="15" class="slider-enhanced">
+            <div class="slider-labels">
+                <span>1x</span>
+                <span>100x</span>
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <div class="control-header">
+                <label for="distance-slider">
+                    <span class="icon">📡</span>
+                    Compresión de Distancia
+                </label>
+                <span id="dist-label" class="control-value">400k</span>
+            </div>
+            <input type="range" id="distance-slider" min="50000" max="800000" step="10000" value="400000" class="slider-enhanced">
+            <div class="slider-labels">
+                <span>50k</span>
+                <span>800k</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Theme Toggle Button -->
+    <button id="theme-toggle" class="theme-toggle" title="Cambiar tema">🌙</button>
 
     <script type="module" src="./js/main.js"></script>
 </body>
