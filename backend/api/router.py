@@ -16,6 +16,9 @@ router = APIRouter(prefix="/api/asteroids", tags=["Asteroides"])
 # Inicializamos el limitador de peticiones por IP
 limiter = Limiter(key_func=get_remote_address)
 
+# Límite de peticiones del endpoint (por IP)
+ASTEROIDS_RATE_LIMIT: str = "30/minute"
+
 
 def get_db():
     db = SessionLocal()
@@ -26,7 +29,7 @@ def get_db():
 
 
 @router.get("/", response_model=list[schemas.AsteroideResponse])
-@limiter.limit("30/minute")  # Límite: 30 peticiones por minuto por usuario
+@limiter.limit(ASTEROIDS_RATE_LIMIT)  # Límite: 30 peticiones por minuto por usuario
 # <-- 2. Convertimos a async def
 async def get_asteroids_by_date(
     request: Request,  # Requerido por slowapi

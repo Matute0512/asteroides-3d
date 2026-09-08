@@ -4,6 +4,10 @@ from backend.db import models
 from backend.services.nasa_client import nasa_client
 from backend.core.logger import logger
 
+# Tope defensivo de objetos a insertar por sincronización (la NASA devuelve una
+# lista por día; este cap evita un crecimiento descontrolado ante respuestas raras)
+MAX_ASTEROIDS_PER_SYNC: int = 2000
+
 
 async def sync_asteroids_for_date(date: str, db: Session) -> int:
     """Descarga, procesa y almacena los asteroides de una fecha especifica.
@@ -31,15 +35,14 @@ async def sync_asteroids_for_date(date: str, db: Session) -> int:
     except Exception as e:
         logger.error(f"Fallo al obtener datos de la NASA para fecha {date}.")
         raise e
-    # backend/services/asteroid_service.py
-    MAX_ITEMS = 2000  # ajustable
 
     asteroides_crudos = data.get("near_earth_objects", {}).get(date, [])
 
-    if len(asteroides_crudos) > MAX_ITEMS:
+    if len(asteroides_crudos) > MAX_ASTEROIDS_PER_SYNC:
         logger.warning(
-            f"Truncando asteroides: {len(asteroides_crudos)} > {MAX_ITEMS}")
-        asteroides_crudos = asteroides_crudos[:MAX_ITEMS]
+            f"Truncando asteroides: {len(asteroides_crudos)} "
+            f"> {MAX_ASTEROIDS_PER_SYNC}")
+        asteroides_crudos = asteroides_crudos[:MAX_ASTEROIDS_PER_SYNC]
 
     if not asteroides_crudos:
         logger.warning(f"La NASA no devolvió asteroides para la fecha {date}.")

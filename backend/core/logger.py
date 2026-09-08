@@ -3,6 +3,10 @@ import logging
 import sys
 import os
 
+# Política de rotación del archivo de logs
+LOG_MAX_BYTES: int = 10 * 1024 * 1024  # 10 MB por archivo
+LOG_BACKUP_COUNT: int = 5
+
 
 def _setup_logger() -> logging.Logger:
     logger = logging.getLogger("AsteroidesApp")
@@ -29,7 +33,8 @@ def _setup_logger() -> logging.Logger:
 
             # Usamos RotatingFileHandler (10 MB máximo, guarda hasta 5 archivos viejos)
             file_handler = RotatingFileHandler(
-                log_path, maxBytes=10 * 1024 * 1024, backupCount=5, encoding="utf-8"
+                log_path, maxBytes=LOG_MAX_BYTES, backupCount=LOG_BACKUP_COUNT,
+                encoding="utf-8",
             )
             file_handler.setFormatter(formatter)
             logger.addHandler(file_handler)

@@ -5,6 +5,12 @@ import httpx
 from backend.core.config import settings
 from backend.core.logger import logger
 
+# Configuración de timeouts del cliente HTTP
+CONNECT_TIMEOUT_S: float = 5.0
+READ_TIMEOUT_S: float = 30.0
+WRITE_TIMEOUT_S: float = 5.0
+POOL_TIMEOUT_S: float = 5.0
+
 # Restricciones de la NASA NeoWs API
 DATE_FORMAT: str = "%Y-%m-%d"
 MAX_DATE_RANGE_DAYS: int = 7
@@ -21,10 +27,10 @@ class NasaApiClient:
         # Instanciamos un único cliente asíncrono persistente con timeout global
         self.client = httpx.AsyncClient(
             timeout=httpx.Timeout(
-                connect=5.0,  # Máximo 5s para establecer conexión
-                read=30.0,   # NASA puede tardar hasta 30s en responder datos pesados
-                write=5.0,
-                pool=5.0,
+                connect=CONNECT_TIMEOUT_S,
+                read=READ_TIMEOUT_S,
+                write=WRITE_TIMEOUT_S,
+                pool=POOL_TIMEOUT_S,
             ),
         )
 
