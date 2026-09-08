@@ -28,7 +28,7 @@ export const EARTH = {
     TEXTURED_COLOR: 0xffffff, // color al aplicar la textura (no tiñe el mapa)
     ROUGHNESS: 0.6,
     METALNESS: 0.1,
-    ROTATION_SPEED: 0.001,
+    ROTATION_SPEED: 0.06, // rad/s (~0.001 por frame a 60 FPS, ahora por tiempo real)
     SURFACE_TEXTURE_URL:
         'https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-blue-marble.jpg',
     // Capa de nubes lista para recibir textura (F1); opacidad 0 hasta aplicarla.
@@ -45,7 +45,7 @@ export const ASTEROID = {
     ROUGHNESS: 0.8,
     METALNESS: 0.2,
     MIN_VISUAL_RADIUS: 0.25, // radio mínimo renderizado (para que siga siendo clicable)
-    MAX_SPIN_SPEED: 0.008, // velocidad máxima de giro propio (rad/fotograma)
+    MAX_SPIN_SPEED: 0.5, // giro propio máximo (rad/s), independiente del FPS
 };
 
 export const SCALE = {
@@ -77,6 +77,15 @@ export const SKYBOX = {
     BACKGROUND: '#04060f',
     // Tinte sutil por cara para dar variedad galáctica al cielo generado.
     FACE_TINTS: ['#101a3c', '#0d1430', '#12102e', '#0a1428', '#0e1230', '#0b1730'],
+};
+
+export const ORBIT = {
+    COLOR: 0x7dd3fc, // color sutil de las líneas de trayectoria
+    OPACITY: 0.3,
+    SEGMENTS: 96, // puntos por anillo orbital (suavidad de la circunferencia)
+    REFERENCE_RADIUS_EARTHS: 2, // radio de referencia para calcular la velocidad
+    SPEED_AT_REFERENCE: 0.12, // rad/s a radio de referencia (órbitas internas rápidas)
+    MIN_SPEED: 0.02, // piso para que las órbitas lejanas no queden congeladas
 };
 
 export const RENDER = {
