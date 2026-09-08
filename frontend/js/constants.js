@@ -22,7 +22,6 @@ export const LIGHTING = {
 
 export const EARTH = {
     RADIUS: 10, // radio escénico de la Tierra (unidad base de la escala, F3)
-    DIAMETER_KM: 12742, // diámetro real de la Tierra (para normalizar tamaños)
     SEGMENTS: 64,
     SOLID_COLOR: 0x2244aa,
     TEXTURED_COLOR: 0xffffff, // color al aplicar la textura (no tiñe el mapa)
@@ -46,13 +45,19 @@ export const ASTEROID = {
     COLOR: 0x888888,
     ROUGHNESS: 0.8,
     METALNESS: 0.2,
-    MIN_VISUAL_RADIUS: 0.25, // radio mínimo renderizado (para que siga siendo clicable)
+    MIN_VISUAL_RADIUS: 1.0, // piso visual: radio mínimo para que la cámara siempre capture el cuerpo
     MAX_SPIN_SPEED: 0.5, // giro propio máximo (rad/s), independiente del FPS
 };
 
 export const SCALE = {
     DEFAULT_SIZE_MULTIPLIER: 15, // exageración de tamaño (slider), normalizada a default
     DEFAULT_DISTANCE_DIVISOR: 400000, // compresión de distancia (slider)
+    // Curva de potencia del TAMAÑO (raíz cuadrada del diámetro real en km), en
+    // lugar de la compresión log10 pura que colapsaba los cuerpos pequeños:
+    // radio_unidades = UNITS_PER_SQRT_KM * diámetro_km^SIZE_POWER.
+    // Con 1 km ⇒ 4 u (≈0.4× radio terrestre), por debajo del tope de colisión.
+    SIZE_POWER: 0.5,
+    UNITS_PER_SQRT_KM: 4,
     // El radio de un asteroide nunca excede esta fracción del radio terrestre.
     MAX_ASTEROID_RADIUS_EARTHS: 0.6,
     // Margen entre la superficie terrestre y el borde del asteroide (unidades 3D).

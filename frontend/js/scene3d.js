@@ -375,14 +375,17 @@ export class SpaceScene {
         this.asteroids.forEach((mesh) => {
             const { data } = mesh.userData;
 
-            // 1) TAMAÑO: diámetro comprimido en log10 y normalizado al diámetro de
-            //    la Tierra; exageración del slider acotada (máx. 0.6× radio terrestre).
-            const logRatio =
-                Math.log10(1 + data.estimated_diameter_max_km) /
-                Math.log10(1 + EARTH.DIAMETER_KM);
+            // 1) TAMAÑO: curva de potencia (raíz cuadrada del diámetro real en km)
+            //    en lugar de la compresión log10 pura: mantiene visibles a los
+            //    cuerpos pequeños y conserva la proporción entre los mayores.
+            //    El gain del slider exagera el tamaño; el piso ASTEROID.
+            //    MIN_VISUAL_RADIUS garantiza que la cámara siempre lo capture y el
+            //    tope superior preserva la defensa de colisiones.
             const gain = this.sizeMultiplier / SCALE.DEFAULT_SIZE_MULTIPLIER;
             const radius = clamp(
-                EARTH.RADIUS * logRatio * gain,
+                Math.pow(data.estimated_diameter_max_km, SCALE.SIZE_POWER) *
+                    SCALE.UNITS_PER_SQRT_KM *
+                    gain,
                 ASTEROID.MIN_VISUAL_RADIUS,
                 EARTH.RADIUS * SCALE.MAX_ASTEROID_RADIUS_EARTHS,
             );
