@@ -1,17 +1,17 @@
+// main.js
+// Controlador/compositor del frontend: une la capa de datos (apiClient),
+// la de presentación (ui) y el motor WebGL (SpaceScene). No toca el DOM.
+
 import { SpaceScene } from './scene3d.js';
-import {apiClient} from './api_client.js';
+import { apiClient } from './api_client.js';
+import { ui } from './ui.js';
+import { RENDER, UI as UI_CONST } from './constants.js';
 
-// Inicializamos el motor gráfico inyectándolo en el contenedor del HTML
-const app = new SpaceScene('scene-container');
+// Inicializamos el motor gráfico inyectándole el contenedor desde la capa UI
+const scene = new SpaceScene(ui.sceneContainerElement);
 
-// --- REFERENCIAS A LA UI ---
-const datePicker = document.getElementById('date-picker');
-const searchBtn = document.getElementById('search-btn');
-const loadingOverlay = document.getElementById('loading-overlay');
-const loadingText = document.getElementById('loading-text');
-
-// Función de utilidad para obtener la fecha de hoy en formato YYYY-MM-DD
-const getTodayString = () => new Date().toISOString().split('T')[0];
+// La selección por raycast se notifica a la capa de presentación
+scene.setOnAsteroidSelected((asteroid) => ui.showTelemetry(asteroid));
 
 let isLoading = false;
 
@@ -20,55 +20,56 @@ async function loadAsteroidsForDate(dateStr) {
     if (isLoading) return;
     isLoading = true;
 
-    const isValidDate = /^\d{4}-\d{2}-\d{2}$/.test(dateStr);
-    if (!isValidDate){
-        alert("Fecha inválida. Usa el selector de fecha.");
+    const isValidDate = UI_CONST.DATE_PATTERN.test(dateStr);
+    if (!isValidDate) {
+        ui.setStatus(UI_CONST.MESSAGES.INVALID_DATE);
+        isLoading = false;
         return;
     }
-    searchBtn.disabled = true;
+
+    ui.setSearchDisabled(true);
     try {
-        loadingText.textContent = 'Buscando en el espacio profundo...';
-        loadingOverlay.classList.remove('hidden');
+        ui.showLoading(UI_CONST.MESSAGES.SEARCHING);
         const asteroides = await apiClient.fetchAsteroidsByDate(dateStr);
 
         if (asteroides.length > 0) {
-            const MAX_RENDER = 500;
-            const safeList = asteroides.slice(0, MAX_RENDER);
-            app.createAsteroids(safeList);
-            if (asteroides.length > MAX_RENDER) {
-                console.warn(`[App] Render limitado: ${asteroides.length} -> ${MAX_RENDER}`);
+            const safeList = asteroides.slice(0, RENDER.MAX_ASTEROIDS);
+            scene.createAsteroids(safeList);
+            if (asteroides.length > RENDER.MAX_ASTEROIDS) {
+                console.warn(UI_CONST.MESSAGES.RENDER_LIMIT(safeList.length, asteroides.length));
             }
         } else {
-            console.warn(`[App] El espacio está despejado. No hay asteroides registrados para el ${dateStr}.`);
+            console.warn(UI_CONST.MESSAGES.EMPTY_SPACE(dateStr));
         }
     } catch (error) {
-        console.error("[App] Fallo de conexión o renderizado:", error);
-        loadingText.textContent = "Error al conectar con el backend.";
+        console.error('[App] Fallo de conexión o renderizado:', error);
+        ui.setStatus(UI_CONST.MESSAGES.LOAD_ERROR);
     } finally {
-        loadingOverlay.classList.add('hidden');
-        searchBtn.disabled = false;
+        ui.hideLoading();
+        ui.setSearchDisabled(false);
         isLoading = false;
     }
 }
 
-
-// --- EVENTOS DEL USUARIO ---
-searchBtn.addEventListener('click', (event) => {
-    // Bloqueamos cualquier recarga automática de la página
-    event.preventDefault();
-    if (datePicker.value){
-        loadAsteroidsForDate(datePicker.value);
-    }
-});
-
-// --- BOOTSTRAP (Arranque Inicial) ---
+// --- CABLEADO DE EVENTOS (delegado a la capa UI) ---
 function bootApplication() {
-    const today = getTodayString();
-    const selectedDate = datePicker.value || today;
-    datePicker.value = selectedDate;
+    // Fecha de hoy en formato YYYY-MM-DD
+    const today = new Date().toISOString().split('T')[0];
+    const selectedDate = ui.getSelectedDate() || today;
+    ui.setSelectedDate(selectedDate);
+
+    ui.init({
+        onSearch: (event) => {
+            event.preventDefault();
+            if (ui.getSelectedDate()) {
+                loadAsteroidsForDate(ui.getSelectedDate());
+            }
+        },
+        onSizeChange: (value) => scene.updateScale({ sizeMultiplier: value }),
+        onDistanceChange: (value) => scene.updateScale({ distanceDivisor: value }),
+    });
+
     // El overlay ya está visible con "Inicializando motor 3D..."
-    // loadAsteroidsForDate lo cambia a "Buscando en el espacio profundo..."
-    // y lo oculta cuando termina
     loadAsteroidsForDate(selectedDate);
 }
 
