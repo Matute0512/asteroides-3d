@@ -33,6 +33,8 @@ async function loadAsteroidsForDate(dateStr) {
         const asteroides = await apiClient.fetchAsteroidsByDate(dateStr);
 
         if (asteroides.length > 0) {
+            // Sustituimos el set anterior: limpiamos la escena antes de cargar el nuevo
+            scene.clearAsteroids();
             const safeList = asteroides.slice(0, RENDER.MAX_ASTEROIDS);
             scene.createAsteroids(safeList);
             if (asteroides.length > RENDER.MAX_ASTEROIDS) {
