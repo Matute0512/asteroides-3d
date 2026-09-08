@@ -10,12 +10,12 @@ class Asteroide(Base):
         {"extend_existing": True},
     )
 
-    # Clave Primaria
-    id = Column(String, primary_key=True, index=True)
+    # Clave Primaria (su índice único implícito ya cubre consultas por 'id')
+    id = Column(String, primary_key=True)
 
-    # Atributos Básicos id y fecha
+    # Atributos Básicos id y fecha (el índice compuesto cubre filtros por fecha)
     name = Column(String, nullable=False)
-    close_approach_date = Column(String, nullable=False, index=True)
+    close_approach_date = Column(String, nullable=False)
 
     # Dimensión y Seguridad
     estimated_diameter_max_km = Column(Float, nullable=False)
