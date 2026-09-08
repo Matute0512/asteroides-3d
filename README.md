@@ -3,6 +3,7 @@
 Una aplicación web Full-Stack interactiva que permite visualizar en 3D los Asteroides Cercanos a la Tierra (NEOs) utilizando datos reales y oficiales de la **NASA NeoWs API**.
 
 ## 🌌 Características Principales
+
 * **Tubería de Datos Real:** Integración asíncrona con la API de la NASA.
 * **Patrón Cache-Aside:** Almacenamiento inteligente en base de datos local (SQLite) para optimizar las peticiones, evitar bloqueos de la API y acelerar los tiempos de respuesta.
 * **Motor 3D Nativo:** Renderizado del sistema espacial a 60 FPS utilizando **Three.js** y WebGL.
@@ -12,6 +13,7 @@ Una aplicación web Full-Stack interactiva que permite visualizar en 3D los Aste
 ## 🛠️ Stack Tecnológico
 
 **Backend:**
+
 * Python 3.12+
 * FastAPI (API REST asíncrona y CORS)
 * SQLAlchemy (ORM) & SQLite
@@ -21,27 +23,33 @@ Una aplicación web Full-Stack interactiva que permite visualizar en 3D los Aste
 * SlowAPI (Rate limiting)
 
 **Frontend:**
+
 * Vanilla JavaScript (ES6 Modules)
 * Three.js (WebGL 3D Engine)
-* HTML5 & CSS3 (Diseño Glassmorphism)
+* Entorno inmersivo: Skybox 360° espacial, texturas locales y líneas vectoriales orbitales
+* Diseño fluido y responsivo (UI separada del motor 3D)
 
 **DevOps:**
+
 * Docker & Docker Compose
 * GitHub Actions (CI: lint + tests automáticos)
 
 ## ⚙️ Instalación y Ejecución Local
 
 ### Requisitos previos
+
 * Python 3.12+
 * API Key gratuita de la NASA: https://api.nasa.gov
 
 ### 1. Clonar el repositorio
+
 ```bash
 git clone https://github.com/tu-usuario/asteroides-3d.git
 cd asteroides-3d
 ```
 
 ### 2. Configurar el Backend
+
 ```bash
 # Crear y activar entorno virtual
 python -m venv venv
@@ -60,12 +68,14 @@ cp .env.example .env
 ```
 
 ### 3. Iniciar el Backend
+
 ```bash
 uvicorn backend.main:app --reload
 # Disponible en http://127.0.0.1:8000
 ```
 
 ### 4. Iniciar el Frontend
+
 ```bash
 # En otra terminal
 python -m http.server 5500 --directory frontend
@@ -86,7 +96,8 @@ docker-compose up --build
 # Frontend disponible en http://localhost:5500
 ```
 
-Para detener:
+## Para detener
+
 ```bash
 docker-compose down
 ```
