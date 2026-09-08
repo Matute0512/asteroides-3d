@@ -1,9 +1,13 @@
-from fastapi.testclient import TestClient
+import asyncio
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
+
 import pytest
+from fastapi.testclient import TestClient
 
 from backend.main import app
 from backend.db.database import engine, Base
+from backend.services.nasa_client import NasaApiClient, nasa_client
 
 # Crea las tablas antes de los tests y las elimina al terminar
 
@@ -46,3 +50,36 @@ def test_date_valid_returns_list():
         response = client.get("/api/asteroids/?date=2024-01-15")
         assert response.status_code == 200
         assert isinstance(response.json(), list)
+
+
+def test_fetch_asteroids_rejects_ranges_over_7_days():
+    """La regla de negocio limita la ventana de búsqueda a 7 días."""
+    with pytest.raises(ValueError):
+        asyncio.run(nasa_client.fetch_asteroids("2024-01-01", "2024-01-09"))
+
+
+def test_fetch_asteroids_rejects_end_before_start():
+    """Un end_date anterior a start_date debe rechazarse."""
+    with pytest.raises(ValueError):
+        asyncio.run(nasa_client.fetch_asteroids("2024-01-07", "2024-01-01"))
+
+
+def test_fetch_asteroids_uses_get_with_expected_params():
+    """La petición al Feed usa GET con start_date, end_date y api_key."""
+    client = NasaApiClient()
+    fake_response = SimpleNamespace(
+        status_code=200,
+        raise_for_status=lambda: None,
+        json=lambda: {"near_earth_objects": {}},
+    )
+    client.client.get = AsyncMock(return_value=fake_response)
+
+    result = asyncio.run(client.fetch_asteroids("2024-01-01", "2024-01-07"))
+
+    assert result == {"near_earth_objects": {}}
+    call = client.client.get.call_args
+    assert call.args[0].endswith("/feed")
+    params = call.kwargs["params"]
+    assert params["start_date"] == "2024-01-01"
+    assert params["end_date"] == "2024-01-07"
+    assert params["api_key"]

@@ -1,6 +1,13 @@
+from datetime import datetime
+
 import httpx
+
 from backend.core.config import settings
 from backend.core.logger import logger
+
+# Restricciones de la NASA NeoWs API
+DATE_FORMAT: str = "%Y-%m-%d"
+MAX_DATE_RANGE_DAYS: int = 7
 
 
 class NasaApiClient:
@@ -26,6 +33,23 @@ class NasaApiClient:
         Obtiene los asteroides cercanos a la Tierra en un rango de fechas.
         Máximo 7 dias de diferencia permitidos por la API.
         """
+        # Regla de negocio: la NASA solo permite rangos de hasta 7 días.
+        # Se valida explícitamente aquí (no solo por el flujo de una sola fecha).
+        try:
+            start = datetime.strptime(start_date, DATE_FORMAT).date()
+            end = datetime.strptime(end_date, DATE_FORMAT).date()
+        except ValueError as exc:
+            raise ValueError(
+                f"Las fechas deben usar el formato {DATE_FORMAT}.") from exc
+
+        if end < start:
+            raise ValueError("start_date no puede ser posterior a end_date.")
+
+        if (end - start).days > MAX_DATE_RANGE_DAYS:
+            raise ValueError(
+                f"El rango de fechas no puede exceder {MAX_DATE_RANGE_DAYS} días "
+                f"(solicitado: {(end - start).days}).")
+
         endpoint = f"{self.base_url}/feed"
         params = {
             "start_date": start_date,

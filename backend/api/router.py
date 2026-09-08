@@ -72,6 +72,10 @@ async def get_asteroids_by_date(
         logger.error(f"Error de red conectando con NASA: {e}")
         raise HTTPException(
             status_code=504, detail="Timeout conectando con la NASA API.")
+    except ValueError as e:
+        # Parámetros de fecha inválidos según la regla de negocio (rango > 7 días, etc.)
+        logger.warning(f"Solicitud rechazada por validación: {e}")
+        raise HTTPException(status_code=422, detail=str(e)) from e
     except Exception as e:
         logger.error(f"Error interno inesperado: {e}", exc_info=True)
         raise HTTPException(
