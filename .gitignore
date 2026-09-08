@@ -8,3 +8,4 @@ backend/asteroides.db
 asteroides.db
 *.db
 graphify-out/
+graphify-out-frontend/
