@@ -1,3 +1,5 @@
+import asyncio
+
 from sqlalchemy.orm import Session
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from backend.db import models
@@ -9,32 +11,20 @@ from backend.core.logger import logger
 MAX_ASTEROIDS_PER_SYNC: int = 2000
 
 
-async def sync_asteroids_for_date(date: str, db: Session) -> int:
-    """Descarga, procesa y almacena los asteroides de una fecha especifica.
+def _persist_asteroids_for_date(data: dict, date: str, db: Session) -> int:
+    """Procesa y almacena en SQLite los datos crudos ya descargados de la NASA.
 
+    Función síncrona (realiza E/S de base de datos bloqueante): debe ejecutarse
+    fuera del event loop mediante asyncio.to_thread.
 
     Args:
-        date (str): Fecha en formato YYYY-MM-DD para sincronizar asteroides.
-        db (Session): Sesión activa de SQLAlchemy para interactuar con la base de datos.
-
-    Raises:
-        Exception: Si ocurre un error al obtener datos de la NASA.
-        KeyError: Si faltan claves esperadas en la estructura JSON.
-        ValueError: Si algún valor no puede convertirse al tipo esperado.
-        IndexError: Si la lista de datos de aproximación está vacía o mal formada.
+        data (dict): Respuesta JSON completa del feed de la NASA.
+        date (str): Fecha en formato YYYY-MM-DD a la que pertenecen los datos.
+        db (Session): Sesión activa de SQLAlchemy.
 
     Returns:
         int: Número de asteroides nuevos insertados en la base de datos.
     """
-    logger.info(
-        f"Iniciando sincronización de asteroides para la fecha {date}...")
-
-    # 1. Obtenemos datos de la NASA
-    try:
-        data = await nasa_client.fetch_asteroids(date, date)
-    except Exception as e:
-        logger.error(f"Fallo al obtener datos de la NASA para fecha {date}.")
-        raise e
 
     asteroides_crudos = data.get("near_earth_objects", {}).get(date, [])
 
@@ -48,14 +38,14 @@ async def sync_asteroids_for_date(date: str, db: Session) -> int:
         logger.warning(f"La NASA no devolvió asteroides para la fecha {date}.")
         return 0
 
-    # 2. Consultar IDs existentes para evitar duplicados (Optimización de DB)
+    # 1. Consultar IDs existentes para evitar duplicados (Optimización de DB)
     ids_existentes = {
         row[0] for row in db.query(models.Asteroide.id)
         .filter(models.Asteroide.close_approach_date == date)
         .all()
     }
     nuevos_asteroides = []
-    # 3. Procesar y mapear cada asteroide
+    # 2. Procesar y mapear cada asteroide
     for ast in asteroides_crudos:
         ast_id = None
         try:
@@ -92,7 +82,7 @@ async def sync_asteroids_for_date(date: str, db: Session) -> int:
             logger.error(f"Error parseando el asteroide {ast_id}: {e}")
             continue
 
-    # 4. Inserción en la base de datos con protección de conflictos (Race Condition)
+    # 3. Inserción en la base de datos con protección de conflictos (Race Condition)
     if nuevos_asteroides:
 
         # Converitmos los objetos ORM a diccionarios
@@ -122,3 +112,34 @@ async def sync_asteroids_for_date(date: str, db: Session) -> int:
             "Sincronización completa: Todos los asteroides ya estaban en la base de datos.")
 
     return len(nuevos_asteroides)
+
+
+async def sync_asteroids_for_date(date: str, db: Session) -> int:
+    """Descarga y persiste los asteroides de una fecha sin bloquear el event loop.
+
+    La descarga a la NASA es async (I/O de red) y se ejecuta en el event loop;
+    la persistencia en SQLite es síncrona y se delega a un hilo con
+    asyncio.to_thread para no bloquear las peticiones concurrentes.
+
+    Args:
+        date (str): Fecha en formato YYYY-MM-DD para sincronizar asteroides.
+        db (Session): Sesión activa de SQLAlchemy.
+
+    Raises:
+        Exception: Si ocurre un error al obtener datos de la NASA.
+
+    Returns:
+        int: Número de asteroides nuevos insertados en la base de datos.
+    """
+    logger.info(
+        f"Iniciando sincronización de asteroides para la fecha {date}...")
+
+    # 1. Obtenemos datos de la NASA (I/O de red, async)
+    try:
+        data = await nasa_client.fetch_asteroids(date, date)
+    except Exception as e:
+        logger.error(f"Fallo al obtener datos de la NASA para fecha {date}.")
+        raise e
+
+    # 2. La persistencia en SQLite es síncrona: se ejecuta en un hilo del pool
+    return await asyncio.to_thread(_persist_asteroids_for_date, data, date, db)

@@ -1,3 +1,5 @@
+import asyncio
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 import httpx
@@ -28,6 +30,13 @@ def get_db():
         db.close()
 
 
+def _query_asteroids_by_date(db: Session, date: str) -> list[models.Asteroide]:
+    """Lectura síncrona de la caché local; se ejecuta en un hilo del pool."""
+    return (db.query(models.Asteroide)
+            .filter(models.Asteroide.close_approach_date == date)
+            .all())
+
+
 @router.get("/", response_model=list[schemas.AsteroideResponse])
 @limiter.limit(ASTEROIDS_RATE_LIMIT)  # Límite: 30 peticiones por minuto por usuario
 # <-- 2. Convertimos a async def
@@ -46,15 +55,16 @@ async def get_asteroids_by_date(
         f"Petición GET recibida: Buscando asteroides para la fecha {safe_date}")
 
     try:
-        asteroides = db.query(models.Asteroide).filter(
-            models.Asteroide.close_approach_date == safe_date).all()
+        # SQLite es síncrono: se delega a un hilo para no bloquear el event loop
+        asteroides = await asyncio.to_thread(
+            _query_asteroids_by_date, db, safe_date)
 
         if not asteroides:
             logger.info(
                 f"Datos no encontrados en SQLite para {safe_date}. Descargando...")
             await sync_asteroids_for_date(safe_date, db)
-            asteroides = db.query(models.Asteroide).filter(
-                models.Asteroide.close_approach_date == safe_date).all()
+            asteroides = await asyncio.to_thread(
+                _query_asteroids_by_date, db, safe_date)
 
         return asteroides
 
