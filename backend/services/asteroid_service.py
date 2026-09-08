@@ -57,13 +57,15 @@ async def sync_asteroids_for_date(date: str, db: Session) -> int:
     nuevos_asteroides = []
     # 3. Procesar y mapear cada asteroide
     for ast in asteroides_crudos:
-        ast_id = ast.get("id")
-
-        if ast_id in ids_existentes:
-            continue
-
+        ast_id = None
         try:
-            # Navegación del JSON y casteo estricto de tipos
+            # Navegación del JSON y casteo estricto de tipos. 'id' se lee dentro
+            # del try: un registro sin id se trata como malformado y se omite.
+            ast_id = ast["id"]
+
+            if ast_id in ids_existentes:
+                continue
+
             diametro = ast["estimated_diameter"]["kilometers"]["estimated_diameter_max"]
             peligroso = ast["is_potentially_hazardous_asteroid"]
 
