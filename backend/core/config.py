@@ -1,8 +1,13 @@
 import os
+from pathlib import Path
+
 from dotenv import load_dotenv
+
 from backend.core.logger import logger
-# 1. Cargar las variables del archivo .env al entorno de Python
-load_dotenv()
+
+# 1. Cargar el .env desde la raíz del proyecto, independiente del CWD de arranque.
+#    En producción (variables ya inyectadas o sin archivo .env) no sobreescribe nada.
+load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 
 class Settings():
