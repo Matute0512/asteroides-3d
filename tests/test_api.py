@@ -5,8 +5,8 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
+from backend.db.database import Base, engine
 from backend.main import app
-from backend.db.database import engine, Base
 from backend.services.nasa_client import NasaApiClient, nasa_client
 
 # Crea las tablas antes de los tests y las elimina al terminar

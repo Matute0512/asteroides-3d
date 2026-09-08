@@ -6,6 +6,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from sqlalchemy.exc import OperationalError
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+
 from backend.api.router import limiter
 from backend.api.router import router as asteroides_router
 from backend.core.config import settings
