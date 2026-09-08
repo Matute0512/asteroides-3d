@@ -51,10 +51,12 @@ export class SpaceScene {
         this.controls.enableDamping = true;
         this.controls.dampingFactor = CONTROLS.DAMPING_FACTOR;
 
-        // F1: fondo espacial real (cubemap 360°)
-        this.#createSkybox();
+        // F1: fondo espacial real (cubemap 360° autocontenido en assets/skybox)
+        this.#initSkybox();
         this.setupLights();
         this.createEarth();
+        // F6: texturas locales de la Tierra si existen (respaldo: color sólido)
+        this.#initEarthTextures();
 
         this.asteroids = [];
 
@@ -90,28 +92,43 @@ export class SpaceScene {
         this.animate();
     }
 
-    // ===== F1: SKYBOX 360° =====
+    // ===== F1: SKYBOX 360° (autocontenido en frontend/assets/skybox) =====
 
-    #createSkybox() {
-        // Si hay 6 texturas configuradas se usan; si no, se genera un cielo
-        // procedural de estrellas (canvas) para no depender de archivos locales.
-        if (SKYBOX.TEXTURES.length === 6) {
+    // Intenta las caras locales; si alguna falta, cae al cielo procedural sin
+    // disparar errores 404 en consola (pre-chequeo por HEAD).
+    async #initSkybox() {
+        try {
+            const available = await this.#areAssetsReady(SKYBOX.TEXTURES);
+            if (!available) {
+                this.#loadProceduralSkybox();
+                return;
+            }
             new THREE.CubeTextureLoader().load(
                 SKYBOX.TEXTURES,
                 (texture) => {
                     this.scene.background = texture;
                 },
                 undefined,
-                () => {
-                    console.warn(
-                        '[SpaceScene] Texturas de skybox no disponibles. Generando cielo procedural.',
-                    );
-                    this.#loadProceduralSkybox();
-                },
+                () => this.#loadProceduralSkybox(),
             );
-            return;
+        } catch {
+            this.#loadProceduralSkybox();
         }
-        this.#loadProceduralSkybox();
+    }
+
+    /** Comprueba si un recurso local existe (HEAD) sin ensuciar la consola si no. */
+    async #isAssetReady(url) {
+        try {
+            const response = await fetch(url, { method: 'HEAD' });
+            return response.ok;
+        } catch {
+            return false;
+        }
+    }
+
+    async #areAssetsReady(urls) {
+        const results = await Promise.all(urls.map((url) => this.#isAssetReady(url)));
+        return results.every(Boolean);
     }
 
     #loadProceduralSkybox() {
@@ -218,9 +235,6 @@ export class SpaceScene {
         });
         this.cloudMesh = new THREE.Mesh(cloudGeometry, this.cloudMaterial);
         this.scene.add(this.cloudMesh);
-
-        // Superficie por defecto (CDN). Sustituible con setSurfaceTexture().
-        this.setSurfaceTexture(EARTH.SURFACE_TEXTURE_URL);
     }
 
     /** Aplica (o sustituye) la textura de superficie de la Tierra. */
@@ -256,6 +270,22 @@ export class SpaceScene {
                 console.warn('[SpaceScene] Textura de nubes no disponible.', error);
             },
         );
+    }
+
+    // Carga las texturas LOCALES de superficie y nubes solo si existen; si faltan,
+    // la Tierra conserva su color sólido y la envoltura de nubes sigue invisible
+    // (sin warnings ni errores 404 en consola).
+    async #initEarthTextures() {
+        try {
+            if (await this.#isAssetReady(EARTH.SURFACE_TEXTURE_URL)) {
+                this.setSurfaceTexture(EARTH.SURFACE_TEXTURE_URL);
+            }
+            if (EARTH.CLOUD_TEXTURE_URL && (await this.#isAssetReady(EARTH.CLOUD_TEXTURE_URL))) {
+                this.setCloudTexture(EARTH.CLOUD_TEXTURE_URL);
+            }
+        } catch {
+            /* mantiene el estado por defecto */
+        }
     }
 
     /** Permite a la capa de presentación reaccionar al asteroide clicado. */

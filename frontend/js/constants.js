@@ -29,8 +29,10 @@ export const EARTH = {
     ROUGHNESS: 0.6,
     METALNESS: 0.1,
     ROTATION_SPEED: 0.06, // rad/s (~0.001 por frame a 60 FPS, ahora por tiempo real)
-    SURFACE_TEXTURE_URL:
-        'https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-blue-marble.jpg',
+    // Texturas autocontenidas en frontend/assets/. Si el archivo no existe al
+    // iniciar la escena, SpaceScene mantiene el color sólido (respaldo limpio).
+    SURFACE_TEXTURE_URL: 'assets/textures/earth_day.jpg',
+    CLOUD_TEXTURE_URL: 'assets/textures/earth_clouds.png',
     // Capa de nubes lista para recibir textura (F1); opacidad 0 hasta aplicarla.
     CLOUD_RADIUS_SCALE: 1.02, // la envoltura queda ligeramente sobre la superficie
     CLOUD_COLOR: 0xffffff,
@@ -66,10 +68,17 @@ export const SCALE = {
 
 export const SKYBOX = {
     // 6 caras del cubemap en orden [+x, -x, +y, -y, +z, -z].
-    // Vacío => se genera un cielo procedural de estrellas (canvas) al vuelo.
-    // Para usar imágenes reales, copia 6 texturas en frontend/assets/skybox/ y
-    // lista aquí sus rutas (p. ej. 'assets/skybox/px.jpg').
-    TEXTURES: [],
+    // Texturas AUTOCONTENIDAS: coloca los archivos en frontend/assets/skybox/.
+    // Si alguna cara no existe al iniciar, SpaceScene genera un cielo
+    // procedural de estrellas (canvas) sin errores de consola.
+    TEXTURES: [
+        'assets/skybox/px.jpg',
+        'assets/skybox/nx.jpg',
+        'assets/skybox/py.jpg',
+        'assets/skybox/ny.jpg',
+        'assets/skybox/pz.jpg',
+        'assets/skybox/nz.jpg',
+    ],
     FACE_SIZE: 512,
     STARS_PER_FACE: 260,
     BRIGHT_STARS_PER_FACE: 10,
