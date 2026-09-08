@@ -1,55 +1,225 @@
-body { margin: 0; overflow: hidden; background-color: #000; }
-#scene-container { width: 100vw; height: 100vh; display: block; }
+/* styles.css
+   Rediseño responsivo (F4) con enfoque open design:
+   - d / dvh (evita solape con barras de móvil)
+   - paneles fluidos con flexbox, clamp() y @media queries
+   - < 640px: bottom-sheets que no desbordan la pantalla
+   No se modifica la lógica 3D. */
 
-/* Estilo Base Glassmorphism */
-.glass-panel {
-    position: absolute;
-    background: rgba(15, 20, 35, 0.75);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 12px;
-    padding: 24px;
-    color: #e2e8f0;
+:root {
+    --panel-bg: rgba(15, 20, 35, 0.78);
+    --panel-border: rgba(255, 255, 255, 0.16);
+    --panel-radius: 14px;
+    --sheet-radius: 18px 18px 0 0;
+
+    --text-primary: #e2e8f0;
+    --text-secondary: #cbd5e1;
+    --text-muted: #94a3b8;
+    --text-faint: #64748b;
+
+    --accent: #38bdf8;
+    --accent-hover: #0ea5e9;
+    --danger: #ef4444;
+
+    --gutter: clamp(10px, 2.5vw, 20px);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
+}
+
+* { box-sizing: border-box; }
+
+html,
+body { height: 100%; }
+
+body {
+    margin: 0;
+    overflow: hidden;
+    background: #000;
+    color: var(--text-primary);
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    color-scheme: dark;
+    height: 100vh;
+    height: 100dvh; /* evita solape con las barras del navegador móvil */
+}
+
+#scene-container {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    display: block;
+}
+
+/* ===== Paneles base (glassmorphism) ===== */
+.glass-panel {
+    position: fixed;
+    background: var(--panel-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--panel-border);
+    border-radius: var(--panel-radius);
+    padding: clamp(14px, 2vw, 24px);
+    color: var(--text-primary);
+    box-shadow: var(--glass-shadow);
     z-index: 10;
 }
 
-/* Panel Lateral (Info) */
+/* --- Buscador (arriba-izquierda, ancho fluido) --- */
+#search-panel {
+    top: var(--gutter);
+    left: var(--gutter);
+    width: clamp(230px, 30vw, 320px);
+    max-width: calc(100vw - 2 * var(--gutter));
+}
+
+#search-panel label {
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+
+.search-controls {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+#date-picker {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 9px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--panel-border);
+    background: rgba(0, 0, 0, 0.35);
+    color: #fff;
+    color-scheme: dark;
+    font: inherit;
+}
+
+#search-btn {
+    padding: 9px 16px;
+    border-radius: 8px;
+    border: none;
+    background: var(--accent);
+    color: #0f172a;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+#search-btn:hover { background: var(--accent-hover); }
+#search-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+#app-status {
+    margin: 10px 0 0;
+    font-size: 0.85rem;
+    color: var(--danger);
+}
+
+/* --- Telemetría (info, arriba-derecha en escritorio) --- */
 #info-panel {
-    top: 20px; right: 20px; width: 280px;
+    top: var(--gutter);
+    right: var(--gutter);
+    width: clamp(260px, 24vw, 340px);
+    max-width: calc(100vw - 2 * var(--gutter));
+    max-height: calc(100dvh - 2 * var(--gutter));
+    overflow: auto;
     transition: opacity 0.3s ease, transform 0.3s ease;
 }
+
+#info-panel h2 {
+    margin: 0 0 14px;
+    padding-right: 28px;
+    font-size: clamp(1.1rem, 2vw, 1.3rem);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 10px;
+}
+
+.data-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+    font-size: clamp(0.85rem, 1.8vw, 0.95rem);
+}
+
+.data-row .label { color: var(--text-muted); }
+.data-row .value {
+    font-weight: 700;
+    color: var(--accent);
+    text-align: right;
+    word-break: break-word;
+}
+.data-row .unit {
+    flex: 0 0 auto;
+    color: var(--text-faint);
+    font-size: 0.8rem;
+    margin-left: 4px;
+}
+
+#close-panel {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    padding: 4px 8px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 1.2rem;
+    cursor: pointer;
+}
+
+#close-panel:hover { color: var(--danger); }
+
 #info-panel.hidden {
-    opacity: 0; transform: translateX(30px); pointer-events: none;
+    opacity: 0;
+    transform: translateX(30px);
+    pointer-events: none;
 }
-#info-panel h2 { margin: 0 0 16px 0; font-size: 1.3rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 12px; }
-.data-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 0.95rem; }
-.data-row .label { color: #94a3b8; }
-.data-row .value { font-weight: bold; color: #60a5fa; }
-.data-row .unit { color: #64748b; font-size: 0.85rem; margin-left: 4px; }
-#close-panel { position: absolute; top: 16px; right: 16px; background: transparent; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer; }
-#close-panel:hover { color: #ef4444; }
 
-/* Panel Inferior (Controles) */
+/* --- Controles inferiores (ancho fluido) --- */
 #controls-panel {
-    bottom: 20px; left: 50%; transform: translateX(-50%);
-    width: 600px; display: flex; gap: 40px; justify-content: space-between;
-    padding: 16px 24px;
+    left: 50%;
+    bottom: var(--gutter);
+    transform: translateX(-50%);
+    width: min(92vw, 620px);
+    display: flex;
+    gap: clamp(14px, 3vw, 40px);
+    justify-content: space-between;
+    padding: 14px clamp(12px, 2vw, 24px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
 }
-.control-group { flex: 1; display: flex; flex-direction: column; }
-.control-group label { margin-bottom: 8px; font-size: 0.9rem; font-weight: bold; color: #cbd5e1; }
-.control-group span { color: #38bdf8; }
-input[type=range] { width: 100%; cursor: pointer; accent-color: #38bdf8; }
 
-/* --- Pantalla de Carga (Loading Overlay) ---*/
+.control-group {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.control-group label {
+    margin-bottom: 8px;
+    font-size: clamp(0.8rem, 1.7vw, 0.9rem);
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+
+.control-group label span { color: var(--accent); }
+
+input[type='range'] {
+    width: 100%;
+    cursor: pointer;
+    accent-color: var(--accent);
+}
+
+/* ===== Pantalla de carga ===== */
 #loading-overlay {
     position: fixed;
-    top: 0; left: 0;
-    width: 100vw; height: 100vh;
+    inset: 0;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
     background: rgba(0, 0, 0, 0.85);
-    backdrop-filter:  blur(5px);
+    backdrop-filter: blur(6px);
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -60,61 +230,81 @@ input[type=range] { width: 100%; cursor: pointer; accent-color: #38bdf8; }
 
 #loading-overlay.hidden {
     opacity: 0;
-    pointer-events: none; /* Permite hacer clics debajo cuando está oculto */
+    pointer-events: none;
 }
 
-.spinner{
-    width: 50px; height: 50px;
-    border: 4px solid rgba(255, 255, 255, 0.1);
-    border-top-color: #38bdf8;
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid rgba(255, 255, 255, 0.12);
+    border-top-color: var(--accent);
     border-radius: 50%;
     animation: spin 1s linear infinite;
     margin-bottom: 16px;
 }
 
 @keyframes spin {
-    to { transform: rotate(360deg);}
+    to { transform: rotate(360deg); }
 }
 
-/* --- Panel de Búsqueda --- */
-#search-panel{
-    top: 20px;
-    left: 20px;
-    width: 250px;
+:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
 }
 
-#search-panel label {
-    font-weight: bold;
-    color: #cbd5e1;
+/* ===== < 640px: bottom-sheets fluidas ===== */
+@media (max-width: 640px) {
+    /* Buscador como barra superior fluida */
+    #search-panel {
+        top: calc(var(--gutter) + env(safe-area-inset-top, 0px));
+        left: var(--gutter);
+        right: var(--gutter);
+        width: auto;
+        max-width: none;
+        padding: 12px 14px;
+        border-radius: 16px;
+    }
+
+    .search-controls { margin-top: 8px; }
+
+    /* Controles como hoja inferior */
+    #controls-panel {
+        left: 0;
+        right: 0;
+        bottom: 0;
+        top: auto;
+        width: 100%;
+        transform: none;
+        border-radius: var(--sheet-radius);
+        padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+    }
+
+    /* Telemetría como hoja inferior (cubre controles mientras está abierta) */
+    #info-panel {
+        top: auto;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        max-width: none;
+        max-height: 60dvh;
+        overflow: auto;
+        border-radius: var(--sheet-radius);
+        padding: 18px 18px calc(18px + env(safe-area-inset-bottom, 0px));
+    }
+
+    #info-panel.hidden { transform: translateY(110%); }
+
+    /* Con la telemetría abierta, se retira la hoja de controles para no solapar */
+    body:has(#info-panel:not(.hidden)) #controls-panel {
+        opacity: 0;
+        transform: translateY(110%);
+        pointer-events: none;
+    }
 }
 
-.search-controls{
-    display: flex;
-    gap: 8px;
-    margin-top: 8px;
-}
-
-#date-picker {
-    flex: 1;
-    padding: 8px;
-    border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    background: rgba(0, 0, 0, 0.3);
-    color: #fff;
-    color-scheme: dark; /* Fuerza el icono del calendario en blanco*/
-}
-
-#search-btn {
-    padding: 8px 16px;
-    border-radius: 6px;
-    border: none;
-    background: #38bdf8;
-    color: #0f172a;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-#search-btn:hover{
-    background: #0ea5e9;
+/* ===== Pantallas muy pequeñas: apilar el buscador ===== */
+@media (max-width: 380px) {
+    .search-controls { flex-direction: column; }
+    #controls-panel { gap: 12px; }
 }
