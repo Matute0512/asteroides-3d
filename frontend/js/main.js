@@ -32,9 +32,11 @@ async function loadAsteroidsForDate(dateStr) {
         ui.showLoading(UI_CONST.MESSAGES.SEARCHING);
         const asteroides = await apiClient.fetchAsteroidsByDate(dateStr);
 
+        // Sustituimos el contenido anterior por el resultado de esta búsqueda,
+        // aunque venga vacío: la escena siempre queda coherente con los datos.
+        scene.clearAsteroids();
+
         if (asteroides.length > 0) {
-            // Sustituimos el set anterior: limpiamos la escena antes de cargar el nuevo
-            scene.clearAsteroids();
             const safeList = asteroides.slice(0, RENDER.MAX_ASTEROIDS);
             scene.createAsteroids(safeList);
             if (asteroides.length > RENDER.MAX_ASTEROIDS) {

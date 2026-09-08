@@ -2,7 +2,8 @@
 // Motor de renderizado WebGL puro (F5). SpaceScene NO conoce clases ni IDs de
 // HTML: recibe el elemento contenedor inyectado, expone comandos
 // (createAsteroids, updateScale) y notifica la selección mediante callback.
-// Toda interacción con el DOM vive en ui.js.
+// F1: skybox 360° (CubeTextureLoader) y Tierra con soporte de texturas/nubes.
+// F3: escala matemática normalizada al radio terrestre con defensa de colisiones.
 
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -14,8 +15,10 @@ import {
     EARTH,
     LIGHTING,
     SCALE,
-    STARFIELD,
+    SKYBOX,
 } from './constants.js';
+
+const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
 export class SpaceScene {
     constructor(container) {
@@ -44,7 +47,8 @@ export class SpaceScene {
         this.controls.enableDamping = true;
         this.controls.dampingFactor = CONTROLS.DAMPING_FACTOR;
 
-        this.#createStarfield();
+        // F1: fondo espacial real (cubemap 360°)
+        this.#createSkybox();
         this.setupLights();
         this.createEarth();
 
@@ -72,27 +76,92 @@ export class SpaceScene {
         this.animate();
     }
 
-    #createStarfield() {
-        const geometry = new THREE.BufferGeometry();
-        const positions = new Float32Array(STARFIELD.COUNT * 3);
+    // ===== F1: SKYBOX 360° =====
 
-        for (let i = 0; i < STARFIELD.COUNT; i++) {
-            const theta = Math.random() * Math.PI * 2;
-            const phi = Math.acos(Math.random() * 2 - 1);
-            positions[i * 3] = STARFIELD.RADIUS * Math.sin(phi) * Math.cos(theta);
-            positions[i * 3 + 1] = STARFIELD.RADIUS * Math.cos(phi);
-            positions[i * 3 + 2] = STARFIELD.RADIUS * Math.sin(phi) * Math.sin(theta);
+    #createSkybox() {
+        // Si hay 6 texturas configuradas se usan; si no, se genera un cielo
+        // procedural de estrellas (canvas) para no depender de archivos locales.
+        if (SKYBOX.TEXTURES.length === 6) {
+            new THREE.CubeTextureLoader().load(
+                SKYBOX.TEXTURES,
+                (texture) => {
+                    this.scene.background = texture;
+                },
+                undefined,
+                () => {
+                    console.warn(
+                        '[SpaceScene] Texturas de skybox no disponibles. Generando cielo procedural.',
+                    );
+                    this.#loadProceduralSkybox();
+                },
+            );
+            return;
+        }
+        this.#loadProceduralSkybox();
+    }
+
+    #loadProceduralSkybox() {
+        const urls = [0, 1, 2, 3, 4, 5].map((faceIndex) => this.#generateSkyFace(faceIndex));
+        new THREE.CubeTextureLoader().load(
+            urls,
+            (texture) => {
+                this.scene.background = texture;
+            },
+            undefined,
+            (error) => {
+                console.warn('[SpaceScene] No se pudo generar el skybox procedural.', error);
+            },
+        );
+    }
+
+    // Pinta una cara (512×512) del cubemap con estrellas y un tinte galáctico.
+    #generateSkyFace(faceIndex) {
+        const size = SKYBOX.FACE_SIZE;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+
+        ctx.fillStyle = SKYBOX.BACKGROUND;
+        ctx.fillRect(0, 0, size, size);
+
+        const tint = SKYBOX.FACE_TINTS[faceIndex % SKYBOX.FACE_TINTS.length];
+        const glow = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size * 0.9);
+        glow.addColorStop(0, tint);
+        glow.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, size, size);
+
+        for (let i = 0; i < SKYBOX.STARS_PER_FACE; i++) {
+            const x = Math.random() * size;
+            const y = Math.random() * size;
+            const r = 0.4 + Math.random();
+            ctx.globalAlpha = 0.35 + Math.random() * 0.65;
+            ctx.fillStyle = SKYBOX.STAR_COLOR;
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+
+        // Estrellas brillantes con cruz de difracción
+        ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < SKYBOX.BRIGHT_STARS_PER_FACE; i++) {
+            const x = Math.random() * size;
+            const y = Math.random() * size;
+            ctx.beginPath();
+            ctx.moveTo(x - 6, y);
+            ctx.lineTo(x + 6, y);
+            ctx.moveTo(x, y - 6);
+            ctx.lineTo(x, y + 6);
+            ctx.stroke();
         }
 
-        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        const material = new THREE.PointsMaterial({
-            color: STARFIELD.COLOR,
-            size: STARFIELD.SIZE,
-            transparent: true,
-            opacity: STARFIELD.OPACITY,
-        });
-        this.scene.add(new THREE.Points(geometry, material));
+        return canvas.toDataURL('image/png');
     }
+
+    // ===== Iluminación =====
 
     setupLights() {
         this.scene.add(new THREE.AmbientLight(0xffffff, LIGHTING.AMBIENT_INTENSITY));
@@ -105,31 +174,72 @@ export class SpaceScene {
         this.scene.add(sunLight);
     }
 
+    // ===== F1: TIERRA (soporta texturas de superficie y nubes) =====
+
     createEarth() {
         const geometry = new THREE.SphereGeometry(
             EARTH.RADIUS,
             EARTH.SEGMENTS,
             EARTH.SEGMENTS,
         );
-        const material = new THREE.MeshStandardMaterial({
+        this.earthMaterial = new THREE.MeshStandardMaterial({
             color: EARTH.SOLID_COLOR,
             roughness: EARTH.ROUGHNESS,
             metalness: EARTH.METALNESS,
         });
-        this.earthMesh = new THREE.Mesh(geometry, material);
+        this.earthMesh = new THREE.Mesh(geometry, this.earthMaterial);
         this.scene.add(this.earthMesh);
 
-        const textureLoader = new THREE.TextureLoader();
-        textureLoader.load(
-            EARTH.TEXTURE_URL,
+        // Envoltura de nubes: lista para recibir una textura con alpha.
+        const cloudGeometry = new THREE.SphereGeometry(
+            EARTH.RADIUS * EARTH.CLOUD_RADIUS_SCALE,
+            EARTH.SEGMENTS,
+            EARTH.SEGMENTS,
+        );
+        this.cloudMaterial = new THREE.MeshStandardMaterial({
+            color: EARTH.CLOUD_COLOR,
+            transparent: true,
+            opacity: 0, // invisible hasta que se aplique una textura de nubes
+            depthWrite: false,
+        });
+        this.cloudMesh = new THREE.Mesh(cloudGeometry, this.cloudMaterial);
+        this.scene.add(this.cloudMesh);
+
+        // Superficie por defecto (CDN). Sustituible con setSurfaceTexture().
+        this.setSurfaceTexture(EARTH.SURFACE_TEXTURE_URL);
+    }
+
+    /** Aplica (o sustituye) la textura de superficie de la Tierra. */
+    setSurfaceTexture(url) {
+        new THREE.TextureLoader().load(
+            url,
             (texture) => {
-                this.earthMesh.material.map = texture;
-                this.earthMesh.material.color.set(EARTH.TEXTURED_COLOR);
-                this.earthMesh.material.needsUpdate = true;
+                this.earthMaterial.map = texture;
+                this.earthMaterial.color.set(EARTH.TEXTURED_COLOR);
+                this.earthMaterial.needsUpdate = true;
             },
             undefined,
             (error) => {
-                console.warn('[SpaceScene] Textura no disponible. Usando color sólido.', error);
+                console.warn(
+                    '[SpaceScene] Textura de superficie no disponible. Usando color sólido.',
+                    error,
+                );
+            },
+        );
+    }
+
+    /** Aplica una textura de nubes a la envoltura (transparencia incluida). */
+    setCloudTexture(url) {
+        new THREE.TextureLoader().load(
+            url,
+            (texture) => {
+                this.cloudMaterial.map = texture;
+                this.cloudMaterial.opacity = EARTH.CLOUD_OPACITY;
+                this.cloudMaterial.needsUpdate = true;
+            },
+            undefined,
+            (error) => {
+                console.warn('[SpaceScene] Textura de nubes no disponible.', error);
             },
         );
     }
@@ -139,7 +249,7 @@ export class SpaceScene {
         this.onAsteroidSelected = callback;
     }
 
-    // --- Limpieza de memoria ---
+    // ===== Limpieza de memoria =====
     clearAsteroids() {
         this.asteroids.forEach((mesh) => this.scene.remove(mesh));
         this.asteroids = [];
@@ -169,13 +279,14 @@ export class SpaceScene {
         asteroidsData.forEach((ast) => {
             const asteroidMesh = new THREE.Mesh(this.sharedGeometry, this.sharedMaterial);
 
-            // Guardamos el JSON y parámetros orbitales aleatorios persistentes
+            // Guardamos el JSON y parámetros de colocación persistentes
             asteroidMesh.userData = {
                 data: ast,
                 theta: Math.random() * Math.PI * 2,
                 phi: Math.acos(Math.random() * 2 - 1),
                 rotSpeedX: (Math.random() - 0.5) * ASTEROID.MAX_SPIN_SPEED,
                 rotSpeedY: (Math.random() - 0.5) * ASTEROID.MAX_SPIN_SPEED,
+                visualRadius: 0,
             };
 
             this.scene.add(asteroidMesh);
@@ -196,28 +307,46 @@ export class SpaceScene {
         this.updateAsteroidsTransform();
     }
 
-    // --- Matemática de escala (transform de posición/tamaño de las rocas) ---
+    // ===== F3: MATEMÁTICA DE ESCALA (radio terrestre como unidad base) =====
     updateAsteroidsTransform() {
         this.asteroids.forEach((mesh) => {
             const { data, theta, phi } = mesh.userData;
 
-            // 1. Escalado dinámico usando mesh.scale
-            const visualSize = Math.max(
-                ASTEROID.MIN_VISUAL_SIZE,
-                data.estimated_diameter_max_km * this.sizeMultiplier,
+            // 1) TAMAÑO: diámetro comprimido en log10 y normalizado al diámetro de
+            //    la Tierra; la exageración del slider es un multiplicador controlado
+            //    y acotado para que ninguna roca supere una fracción del radio terrestre.
+            const logRatio =
+                Math.log10(1 + data.estimated_diameter_max_km) /
+                Math.log10(1 + EARTH.DIAMETER_KM);
+            const gain = this.sizeMultiplier / SCALE.DEFAULT_SIZE_MULTIPLIER;
+            const radius = clamp(
+                EARTH.RADIUS * logRatio * gain,
+                ASTEROID.MIN_VISUAL_RADIUS,
+                EARTH.RADIUS * SCALE.MAX_ASTEROID_RADIUS_EARTHS,
             );
-            mesh.scale.set(visualSize, visualSize, visualSize);
+            mesh.scale.set(radius, radius, radius);
+            mesh.userData.visualRadius = radius;
 
-            // 2. Reposicionamiento dinámico
-            const visualDistance =
-                ASTEROID.ORBIT_MIN_DISTANCE + data.miss_distance_km / this.distanceDivisor;
-            mesh.position.x = visualDistance * Math.sin(phi) * Math.cos(theta);
-            mesh.position.y = visualDistance * Math.cos(phi);
-            mesh.position.z = visualDistance * Math.sin(phi) * Math.sin(theta);
+            // 2) DISTANCIA: compresión logarítmica de la distancia (en radios
+            //    terrestres); el divisor del slider desplaza la pendiente.
+            const scaledKm = data.miss_distance_km / this.distanceDivisor;
+            const logDistance = Math.log10(1 + scaledKm);
+            const distance = EARTH.RADIUS * (1 + logDistance * SCALE.DISTANCE.EARTHS_PER_LOG);
+
+            // 3) DEFENSA DE COLISIONES: la distancia radial nunca baja de
+            //    (radio Tierra + radio asteroide + gap), así ninguna malla cruza.
+            const minDistance = EARTH.RADIUS + radius + SCALE.SAFETY_GAP;
+            const safeDistance = Math.max(distance, minDistance);
+
+            mesh.position.set(
+                safeDistance * Math.sin(phi) * Math.cos(theta),
+                safeDistance * Math.cos(phi),
+                safeDistance * Math.sin(phi) * Math.sin(theta),
+            );
         });
     }
 
-    // --- Raycasting (selección de asteroides) ---
+    // ===== Raycasting (selección de asteroides) =====
     #handleClick(event) {
         const rect = this.renderer.domElement.getBoundingClientRect();
 
@@ -252,6 +381,9 @@ export class SpaceScene {
 
         if (this.earthMesh) {
             this.earthMesh.rotation.y += EARTH.ROTATION_SPEED;
+        }
+        if (this.cloudMesh) {
+            this.cloudMesh.rotation.y += EARTH.ROTATION_SPEED * EARTH.CLOUD_ROTATION_FACTOR;
         }
 
         this.asteroids.forEach((mesh) => {
