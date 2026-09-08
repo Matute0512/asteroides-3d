@@ -1,15 +1,17 @@
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from sqlalchemy.exc import OperationalError
+
 from backend.api.router import limiter
-from backend.core.logger import logger
-from backend.core.config import settings
-from backend.db.database import engine, Base
-from backend.services.nasa_client import nasa_client
 from backend.api.router import router as asteroides_router
+from backend.core.config import settings
+from backend.core.logger import logger
+from backend.db.database import Base, engine
+from backend.services.nasa_client import nasa_client
 
 
 @asynccontextmanager
@@ -24,7 +26,7 @@ async def lifespan(app: FastAPI):
         else:
             logger.critical(
                 f"Fallo crítico al inicializar la base de datos: {e}")
-            raise e
+            raise
     yield
     logger.info("Apagando el servidor y liberando recursos.")
     await nasa_client.close()

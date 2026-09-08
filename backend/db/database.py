@@ -1,5 +1,6 @@
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.orm import declarative_base, sessionmaker
+
 from backend.core.config import settings
 from backend.core.logger import logger
 
@@ -25,4 +26,4 @@ try:
 except Exception as e:
     # Captura explícita de fallos de ruta o permisos antes de detener el sistema
     logger.critical(f"Error crítico al conectar con la base de datos: {e}")
-    raise e
+    raise

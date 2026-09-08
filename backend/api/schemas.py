@@ -22,4 +22,3 @@ class AsteroideResponse(AsteroideBase):
     """Esquema utilizado para responder a las peticiones del frontend.
     Hereda todos los atributos de AsteroideBase.
     """
-    pass

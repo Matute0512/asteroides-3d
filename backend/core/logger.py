@@ -1,7 +1,7 @@
-from logging.handlers import RotatingFileHandler
 import logging
-import sys
 import os
+import sys
+from logging.handlers import RotatingFileHandler
 
 # Política de rotación del archivo de logs
 LOG_MAX_BYTES: int = 10 * 1024 * 1024  # 10 MB por archivo

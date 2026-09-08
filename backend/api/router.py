@@ -1,15 +1,17 @@
 import asyncio
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from sqlalchemy.orm import Session
 import httpx
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
+from sqlalchemy.orm import Session
 
-from backend.db.database import SessionLocal
-from backend.db import models
 from backend.api import schemas
 from backend.core.logger import logger
+from backend.db import models
+from backend.db.database import SessionLocal
+
 # 1. Importamos nuestro servicio de sincronización
 from backend.services.asteroid_service import sync_asteroids_for_date
 
@@ -42,9 +44,9 @@ def _query_asteroids_by_date(db: Session, date: str) -> list[models.Asteroide]:
 # <-- 2. Convertimos a async def
 async def get_asteroids_by_date(
     request: Request,  # Requerido por slowapi
+    db: Annotated[Session, Depends(get_db)],
     date: str = Query(..., pattern=r"^\d{4}-\d{2}-\d{2}$",
                       description="Fecha en formato YYYY-MM-DD"),
-    db: Session = Depends(get_db)
 ):
     """
     Devuelve la lista de asteroides registrados para una fecha específica.
@@ -89,7 +91,8 @@ async def get_asteroids_by_date(
         # Parámetros de fecha inválidos según la regla de negocio (rango > 7 días, etc.)
         logger.warning(f"Solicitud rechazada por validación: {e}")
         raise HTTPException(status_code=422, detail=str(e)) from e
-    except Exception as e:
+    # Guardia final: cualquier error inesperado se traduce en un 500 controlado.
+    except Exception as e:  # noqa: BLE001
         logger.error(f"Error interno inesperado: {e}", exc_info=True)
         raise HTTPException(
             status_code=500, detail="Error interno del servidor.")

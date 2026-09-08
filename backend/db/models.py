@@ -1,6 +1,6 @@
-from sqlalchemy import Column, String, Float, Boolean
+from sqlalchemy import Boolean, Column, Float, Index, String
+
 from backend.db.database import Base
-from sqlalchemy import Index
 
 
 class Asteroide(Base):

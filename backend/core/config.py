@@ -10,7 +10,7 @@ from backend.core.logger import logger
 load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 
-class Settings():
+class Settings:
     """Clase central para manejar la configuración y credenciales de la App.
     """
 

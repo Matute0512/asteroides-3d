@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date
 
 import httpx
 
@@ -42,8 +42,8 @@ class NasaApiClient:
         # Regla de negocio: la NASA solo permite rangos de hasta 7 días.
         # Se valida explícitamente aquí (no solo por el flujo de una sola fecha).
         try:
-            start = datetime.strptime(start_date, DATE_FORMAT).date()
-            end = datetime.strptime(end_date, DATE_FORMAT).date()
+            start = date.fromisoformat(start_date)
+            end = date.fromisoformat(end_date)
         except ValueError as exc:
             raise ValueError(
                 f"Las fechas deben usar el formato {DATE_FORMAT}.") from exc
@@ -77,11 +77,11 @@ class NasaApiClient:
         except httpx.HTTPStatusError as e:
             logger.error(
                 f"Error HTTP de la Nasa ({e.response.status_code}): {e.response.text}")
-            raise e
+            raise
         except httpx.RequestError as e:
             logger.critical(
                 f"Fallo de red al intentar conectar con la NASA: {e}")
-            raise e
+            raise
 
     async def close(self) -> None:
         """Cierra el cliente HTTP  persistente para liberar recursos de red.

@@ -1,10 +1,11 @@
 import asyncio
 
-from sqlalchemy.orm import Session
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+from sqlalchemy.orm import Session
+
+from backend.core.logger import logger
 from backend.db import models
 from backend.services.nasa_client import nasa_client
-from backend.core.logger import logger
 
 # Tope defensivo de objetos a insertar por sincronización (la NASA devuelve una
 # lista por día; este cap evita un crecimiento descontrolado ante respuestas raras)
@@ -137,9 +138,9 @@ async def sync_asteroids_for_date(date: str, db: Session) -> int:
     # 1. Obtenemos datos de la NASA (I/O de red, async)
     try:
         data = await nasa_client.fetch_asteroids(date, date)
-    except Exception as e:
+    except Exception:
         logger.error(f"Fallo al obtener datos de la NASA para fecha {date}.")
-        raise e
+        raise
 
     # 2. La persistencia en SQLite es síncrona: se ejecuta en un hilo del pool
     return await asyncio.to_thread(_persist_asteroids_for_date, data, date, db)
